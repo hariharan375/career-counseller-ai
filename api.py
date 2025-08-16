@@ -85,7 +85,7 @@ graph.add_edge("career_guidance", END)
 app = graph.compile()
 
 # ----------------- STREAMLIT UI -----------------
-st.title("🎓 AI Career Counsellor with Progress Tracking")
+st.title("🎓 AI Career Counsellor")
 
 # Initialize session state memory
 if "test_scores" not in st.session_state:
@@ -130,3 +130,4 @@ if st.button("Get Career Guidance"):
 
     st.subheader("📌 Career Guidance")
     st.markdown(final_state["guidance_text"], unsafe_allow_html=True)
+
