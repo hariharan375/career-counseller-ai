@@ -3,3 +3,4 @@ pandas
 langgraph
 groq
 numpy
+python-dotenv
