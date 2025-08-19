@@ -52,6 +52,7 @@ def career_guidance_node(state: CounsellorState):
     - Requirement: {state['requirement']}
 
     Based on these, provide:
+    You are a career guidance expert.
     1. Address the student by name and give personalised career guidance with areas needed to improve with the ways to do it.
     2. Mention if their marks trend shows improvement, decline, or stability.
     3. Markdown table of Top 10 suitable colleges for bachelor's degree and the option for masters suggestion also as one markdown table (near their state or nationally reputed).
@@ -130,4 +131,5 @@ if st.button("Get Career Guidance"):
 
     st.subheader("📌 Career Guidance")
     st.markdown(final_state["guidance_text"], unsafe_allow_html=True)
+
 
