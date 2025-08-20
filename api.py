@@ -55,7 +55,7 @@ def career_guidance_node(state: CounsellorState):
     You are a career guidance expert.
     1. Address the student by name and give personalised career guidance with areas needed to improve with the ways to do it.
     2. Mention if their marks trend shows improvement, decline, or stability.
-    3. Markdown table of Top 10 suitable colleges for bachelor's degree and the option for masters suggestion also as one markdown table (near their state or nationally reputed).
+    3. Markdown table of Top 10 suitable colleges for bachelor's degree by checking the colleges previous year cutoff marks (where cutoff = maths mark +(physics + chemistry)/2) and the option for masters suggestion also as one markdown table (near their state or nationally reputed).
        - Columns: College Name | Course | Eligibility | Application Process
     4. Give a note to check the respective college website for further details/ clarification
     5. Do NOT return JSON. Format in plain text + valid markdown table.
@@ -131,5 +131,6 @@ if st.button("Get Career Guidance"):
 
     st.subheader("📌 Career Guidance")
     st.markdown(final_state["guidance_text"], unsafe_allow_html=True)
+
 
 
