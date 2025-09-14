@@ -63,7 +63,7 @@ def career_guidance_node(state: CounsellorState):
 
     try:
         response = client.chat.completions.create(
-            model="llama3-70b-8192",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
         )
         guidance_output = response.choices[0].message.content.strip()
@@ -131,6 +131,7 @@ if st.button("Get Career Guidance"):
 
     st.subheader("📌 Career Guidance")
     st.markdown(final_state["guidance_text"], unsafe_allow_html=True)
+
 
 
 
