@@ -1,6 +1,7 @@
 streamlit
-pandas
-langgraph
+firebase-admin
 groq
+langgraph
+pandas
 numpy
 python-dotenv
