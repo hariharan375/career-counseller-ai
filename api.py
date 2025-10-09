@@ -1,137 +1,129 @@
 import streamlit as st
-from langgraph.graph import StateGraph, END
-from typing import TypedDict, Dict, List
-from groq import Groq
+import pandas as pd
 import numpy as np
-import os
-from dotenv import load_dotenv
+import json
+import hashlib
+import firebase_admin
+from firebase_admin import credentials, firestore, auth
 
-# Load API key from .env file
-load_dotenv()
-api_key = os.getenv("GROQ_API_KEY")
+# ========== FIREBASE INITIALIZATION ==========
+if not firebase_admin._apps:
+    # Use Firebase credentials from Streamlit Secrets (for deployment)
+    if "FIREBASE_KEY" in st.secrets:
+        firebase_key = json.loads(st.secrets["FIREBASE_KEY"])
+        cred = credentials.Certificate(firebase_key)
+    else:
+        # For local testing, use your downloaded serviceAccountKey.json
+        cred = credentials.Certificate("serviceAccountKey.json")
 
-# Initialize Groq client
-client = Groq(api_key=api_key)
+    firebase_admin.initialize_app(cred)
 
-# State structure
-class CounsellorState(TypedDict):
-    test_scores: List[Dict[str, int]]  # multiple test scores stored
-    state: str
-    requirement: str
-    student_name: str
-    guidance_text: str
+db = firestore.client()
 
-# Career Guidance Node
-def career_guidance_node(state: CounsellorState):
-    # Analyze marks trend
-    physics_scores = [t["Physics"] for t in state["test_scores"]]
-    maths_scores = [t["Maths"] for t in state["test_scores"]]
-    chemistry_scores = [t["Chemistry"] for t in state["test_scores"]]
+# ========== HELPER FUNCTIONS ==========
+def make_hash(password):
+    """Basic SHA256 hashing for demo purposes."""
+    return hashlib.sha256(password.encode()).hexdigest()
 
-    def get_trend(scores):
-        if len(scores) < 2:
-            return "Not enough data"
-        if scores[-1] > scores[0]:
-            return "Improving"
-        elif scores[-1] < scores[0]:
-            return "Declining"
-        else:
-            return "Stable"
+def analyze_trend(test_scores):
+    """Determine performance trend based on average marks per test."""
+    if len(test_scores) < 2:
+        return "Not enough data to determine trend."
+    averages = [np.mean(list(t.values())) for t in test_scores]
+    if averages[-1] > averages[0]:
+        return "Your performance is improving 📈 — keep it up!"
+    elif averages[-1] < averages[0]:
+        return "Your performance has decreased 📉 — focus more on weak areas."
+    else:
+        return "Your performance is stable ⚖️ — try to push for consistent growth."
 
-    trends = {
-        "Physics": get_trend(physics_scores),
-        "Maths": get_trend(maths_scores),
-        "Chemistry": get_trend(chemistry_scores),
-    }
+def career_guidance_based_on_marks(avg):
+    """Simple career suggestions based on score averages."""
+    if avg >= 90:
+        return "Excellent! You could explore careers in Research, Data Science, or Engineering."
+    elif avg >= 75:
+        return "Great job! Consider careers in Software, Electronics, or Management fields."
+    elif avg >= 60:
+        return "Good effort! You might like roles in Design, Technical Support, or Analytics."
+    else:
+        return "Don’t give up! Focus on improving concepts and seek guidance. You can explore vocational or creative fields."
 
-    prompt = f"""
-    The student {state['student_name']} has the following details:
-    - Test Scores: {state['test_scores']}
-    - Trends: {trends}
-    - Location: {state['state']}
-    - Requirement: {state['requirement']}
+# ========== STREAMLIT APP UI ==========
+st.set_page_config(page_title="AI Career Counsellor", layout="centered")
+st.title("🎓 AI Career Counsellor with Progress Tracking")
+st.caption("An AI-powered system for personalized career guidance and academic progress analysis.")
 
-    Based on these, provide:
-    You are a career guidance expert.
-    1. Address the student by name and give personalised career guidance with areas needed to improve with the ways to do it.
-    2. Mention if their marks trend shows improvement, decline, or stability.
-    3. Markdown table of Top 10 suitable colleges for bachelor's degree by checking the colleges previous year cutoff marks (where cutoff = maths mark +(physics + chemistry)/2) and the option for masters suggestion also as one markdown table (near their state or nationally reputed).
-       - Columns: College Name | Course | Eligibility | Application Process
-    4. Give a note to check the respective college website for further details/ clarification
-    5. Do NOT return JSON. Format in plain text + valid markdown table.
-    """
+# -------- SIDEBAR AUTH --------
+st.sidebar.title("🔑 User Authentication")
+auth_mode = st.sidebar.radio("Choose Action:", ["Login", "Register"])
+email = st.sidebar.text_input("Email")
+password = st.sidebar.text_input("Password", type="password")
 
+user = None
+
+if auth_mode == "Register" and st.sidebar.button("Create Account"):
     try:
-        response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}],
-        )
-        guidance_output = response.choices[0].message.content.strip()
-
-        return {
-            "test_scores": state["test_scores"],
-            "state": state["state"],
-            "requirement": state["requirement"],
-            "student_name": state["student_name"],
-            "guidance_text": guidance_output
-        }
+        user = auth.create_user(email=email, password=password)
+        st.sidebar.success("✅ Account created! Please login.")
     except Exception as e:
-        return {"guidance_text": f"⚠️ Error: {str(e)}"}
+        st.sidebar.error(f"⚠️ Error: {e}")
 
-# LangGraph Setup
-graph = StateGraph(CounsellorState)
-graph.add_node("career_guidance", career_guidance_node)
-graph.set_entry_point("career_guidance")
-graph.add_edge("career_guidance", END)
-app = graph.compile()
+if auth_mode == "Login" and st.sidebar.button("Login"):
+    try:
+        user = auth.get_user_by_email(email)
+        st.sidebar.success(f"✅ Welcome {email}")
+        st.session_state["user"] = user
+    except Exception as e:
+        st.sidebar.error(f"⚠️ Login failed: {e}")
 
-# ----------------- STREAMLIT UI -----------------
-st.title("🎓 AI Career Counsellor")
+# -------- MAIN PAGE --------
+if "user" in st.session_state:
+    user = st.session_state["user"]
+    st.success(f"Logged in as: {email}")
 
-# Initialize session state memory
-if "test_scores" not in st.session_state:
+    # Load previous test data
     st.session_state.test_scores = []
+    tests_ref = db.collection("students").document(user.uid).collection("tests").stream()
+    for doc in tests_ref:
+        st.session_state.test_scores.append(doc.to_dict())
 
-# Student name
-student_name = st.text_input("Enter your Name")
+    st.subheader("📚 Enter New Test Marks")
 
-# Add test marks
-st.subheader("Test Scores")
-physics = st.number_input("Physics Marks", min_value=0, max_value=100, key="physics")
-maths = st.number_input("Maths Marks", min_value=0, max_value=100, key="maths")
-chemistry = st.number_input("Chemistry Marks", min_value=0, max_value=100, key="chemistry")
+    physics = st.number_input("Physics Marks", 0, 100, 0)
+    chemistry = st.number_input("Chemistry Marks", 0, 100, 0)
+    maths = st.number_input("Maths Marks", 0, 100, 0)
 
-if st.button("Add Test"):
-    st.session_state.test_scores.append({
-        "Physics": physics,
-        "Maths": maths,
-        "Chemistry": chemistry
-    })
-    st.success("✅ Test added successfully!")
+    if st.button("Add Test"):
+        test_data = {
+            "Physics": physics,
+            "Chemistry": chemistry,
+            "Maths": maths
+        }
 
-# Display all entered tests
-if st.session_state.test_scores:
-    st.subheader("📊 Test History")
-    for i, test in enumerate(st.session_state.test_scores, 1):
-        st.write(f"**Test {i}:** {test}")
+        # Save to Firestore
+        db.collection("students").document(user.uid).collection("tests").add(test_data)
+        st.session_state.test_scores.append(test_data)
 
-# Other inputs
-state_name = st.text_input("Enter your State")
-requirement = st.text_area("Enter your career interest/requirement")
+        st.success("✅ Test data added successfully!")
 
-if st.button("Get Career Guidance"):
-    input_state = CounsellorState(
-        test_scores=st.session_state.test_scores,
-        state=state_name,
-        requirement=requirement,
-        student_name=student_name,
-        guidance_text=""
-    )
-    final_state = app.invoke(input_state)
+    # -------- DISPLAY PREVIOUS TESTS --------
+    if st.session_state.test_scores:
+        st.subheader("📊 Your Test History")
+        df = pd.DataFrame(st.session_state.test_scores)
+        st.dataframe(df)
 
-    st.subheader("📌 Career Guidance")
-    st.markdown(final_state["guidance_text"], unsafe_allow_html=True)
+        avg_marks = df.mean(axis=1)
+        overall_avg = df.mean().mean()
 
+        st.write(f"**Overall Average Marks:** {overall_avg:.2f}")
+        st.write(analyze_trend(st.session_state.test_scores))
 
+        # Career guidance output
+        st.subheader("💡 Personalized Career Guidance")
+        suggestion = career_guidance_based_on_marks(overall_avg)
+        st.success(suggestion)
+    else:
+        st.info("No tests added yet. Start by entering your first test data below.")
 
-
+else:
+    st.warning("👋 Please log in or register to access your personalized dashboard.")
