@@ -12,6 +12,7 @@ from groq import Groq
 # ========== FIREBASE INITIALIZATION ==========
 if not firebase_admin._apps:
     if "FIREBASE_KEY" in st.secrets:
+        
         firebase_key = json.loads(st.secrets["FIREBASE_KEY"])
         cred = credentials.Certificate(firebase_key)
         firebase_admin.initialize_app(cred)
@@ -186,3 +187,4 @@ if "user" in st.session_state:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
