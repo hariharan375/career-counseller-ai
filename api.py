@@ -32,7 +32,11 @@ db = firestore.client()
 # ============================================================
 # ========== GROQ INITIALIZATION ==============================
 # ============================================================
-client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+try:
+    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+except Exception as e:
+    st.error(f"⚠️ Failed to initialize Groq client: {e}")
+    st.stop()
 
 # ============================================================
 # ========== LANGGRAPH STATE DEFINITION =======================
@@ -84,8 +88,9 @@ def career_guidance_node(state: CounsellorState):
     """
 
     try:
+        # ✅ Updated to a currently supported Groq model
         response = client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model="llama-3.3-70b-specdec",  # or "mixtral-8x7b"
             messages=[{"role": "user", "content": prompt}],
         )
         output = response.choices[0].message.content.strip()
@@ -159,7 +164,7 @@ if user:
         test_data = {"Physics": physics, "Chemistry": chemistry, "Maths": maths}
         db.collection("students").document(user.uid).collection("tests").add(test_data)
         st.session_state.test_scores.append(test_data)
-        st.success("✅ Test data added successfully!")
+        st.success("✅ Test data added successfully! Please refresh to view updated list.")
 
     # Display test history
     if st.session_state.test_scores:
@@ -167,7 +172,6 @@ if user:
         df = pd.DataFrame(st.session_state.test_scores)
         st.dataframe(df)
 
-        avg_marks = df.mean(axis=1)
         overall_avg = df.mean().mean()
         st.write(f"**Overall Average Marks:** {overall_avg:.2f}")
 
