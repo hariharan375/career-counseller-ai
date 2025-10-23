@@ -1,32 +1,42 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import json
-import hashlib
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Dict, List
 from groq import Groq
 
-# ========== FIREBASE INITIALIZATION ==========
+# ============================================================
+# ========== FIREBASE INITIALIZATION ==========================
+# ============================================================
 if not firebase_admin._apps:
     if "FIREBASE_KEY" in st.secrets:
-        
-        firebase_key = json.loads(st.secrets["FIREBASE_KEY"])
-        cred = credentials.Certificate(firebase_key)
-        firebase_admin.initialize_app(cred)
-
+        try:
+            firebase_key = json.loads(st.secrets["FIREBASE_KEY"])
+            cred = credentials.Certificate(firebase_key)
+        except Exception as e:
+            st.error(f"⚠️ Failed to load Firebase key from secrets: {e}")
+            st.stop()
     else:
-        cred = credentials.Certificate("career counseller ai/career-counsellor-ai-firebase-adminsdk-fbsvc-ad36c831af.json")
+        # Local fallback for development
+        cred = credentials.Certificate(
+            "career counseller ai/career-counsellor-ai-firebase-adminsdk-fbsvc-ad36c831af.json"
+        )
+
     firebase_admin.initialize_app(cred)
 
+# Firestore DB instance
 db = firestore.client()
 
-# ========== GROQ INITIALIZATION ==========
+# ============================================================
+# ========== GROQ INITIALIZATION ==============================
+# ============================================================
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# ========== LANGGRAPH STATE DEFINITION ==========
+# ============================================================
+# ========== LANGGRAPH STATE DEFINITION =======================
+# ============================================================
 class CounsellorState(TypedDict):
     student_name: str
     test_scores: List[Dict[str, int]]
@@ -34,7 +44,9 @@ class CounsellorState(TypedDict):
     requirement: str
     guidance_text: str
 
-# ========== LANGGRAPH NODE FUNCTION ==========
+# ============================================================
+# ========== LANGGRAPH NODE FUNCTION ==========================
+# ============================================================
 def career_guidance_node(state: CounsellorState):
     physics_scores = [t["Physics"] for t in state["test_scores"]]
     maths_scores = [t["Maths"] for t in state["test_scores"]]
@@ -81,25 +93,33 @@ def career_guidance_node(state: CounsellorState):
     except Exception as e:
         return {"guidance_text": f"⚠️ Error fetching AI guidance: {str(e)}"}
 
-# ========== BUILD LANGGRAPH ==========
+# ============================================================
+# ========== BUILD LANGGRAPH ================================
+# ============================================================
 graph = StateGraph(CounsellorState)
 graph.add_node("career_guidance", career_guidance_node)
 graph.set_entry_point("career_guidance")
 graph.add_edge("career_guidance", END)
 app = graph.compile()
 
-# ========== STREAMLIT APP ==========
+# ============================================================
+# ========== STREAMLIT FRONTEND ===============================
+# ============================================================
 st.set_page_config(page_title="AI Career Counsellor", layout="centered")
 st.title("🎓 AI Career Counsellor with Progress Tracking + Groq LLM")
 st.caption("An AI-powered system for personalized career guidance and academic analysis.")
 
-# -------- SIDEBAR AUTH --------
+# ------------------------------------------------------------
+# 🔐 SIDEBAR: Authentication
+# ------------------------------------------------------------
 st.sidebar.title("🔑 User Authentication")
 auth_mode = st.sidebar.radio("Choose Action:", ["Login", "Register"])
 email = st.sidebar.text_input("Email")
 password = st.sidebar.text_input("Password", type="password")
 
-user = None
+# Keep user state persistent
+if "user" not in st.session_state:
+    st.session_state.user = None
 
 if auth_mode == "Register" and st.sidebar.button("Create Account"):
     try:
@@ -111,39 +131,37 @@ if auth_mode == "Register" and st.sidebar.button("Create Account"):
 if auth_mode == "Login" and st.sidebar.button("Login"):
     try:
         user = auth.get_user_by_email(email)
+        st.session_state.user = user
         st.sidebar.success(f"✅ Welcome {email}")
-        st.session_state["user"] = user
     except Exception as e:
         st.sidebar.error(f"⚠️ Login failed: {e}")
 
-# -------- MAIN APP --------
-if "user" in st.session_state:
-    user = st.session_state["user"]
+# ------------------------------------------------------------
+# 🧠 MAIN APP SECTION
+# ------------------------------------------------------------
+user = st.session_state.user
+if user:
     st.success(f"Logged in as: {email}")
 
-    # Fetch test data from Firestore
+    # Retrieve test data
     st.session_state.test_scores = []
     tests_ref = db.collection("students").document(user.uid).collection("tests").stream()
     for doc in tests_ref:
         st.session_state.test_scores.append(doc.to_dict())
 
+    # Input new test data
     st.subheader("📚 Enter New Test Marks")
-
     physics = st.number_input("Physics Marks", 0, 100, 0)
     chemistry = st.number_input("Chemistry Marks", 0, 100, 0)
     maths = st.number_input("Maths Marks", 0, 100, 0)
 
     if st.button("➕ Add Test"):
-        test_data = {
-            "Physics": physics,
-            "Chemistry": chemistry,
-            "Maths": maths
-        }
+        test_data = {"Physics": physics, "Chemistry": chemistry, "Maths": maths}
         db.collection("students").document(user.uid).collection("tests").add(test_data)
         st.session_state.test_scores.append(test_data)
         st.success("✅ Test data added successfully!")
 
-    # -------- Display History --------
+    # Display test history
     if st.session_state.test_scores:
         st.subheader("📊 Your Test History")
         df = pd.DataFrame(st.session_state.test_scores)
@@ -151,10 +169,9 @@ if "user" in st.session_state:
 
         avg_marks = df.mean(axis=1)
         overall_avg = df.mean().mean()
-
         st.write(f"**Overall Average Marks:** {overall_avg:.2f}")
 
-        # Additional inputs for AI guidance
+        # Additional inputs for AI
         st.subheader("🧠 Get Personalized AI Career Guidance")
         student_name = st.text_input("Your Name")
         state_name = st.text_input("Your State (e.g., Tamil Nadu)")
@@ -170,7 +187,7 @@ if "user" in st.session_state:
             )
             final_state = app.invoke(input_state)
 
-            # Save to Firestore
+            # Save results
             db.collection("students").document(user.uid).set({
                 "name": student_name,
                 "email": email,
@@ -181,10 +198,8 @@ if "user" in st.session_state:
 
             st.subheader("📌 AI Career Guidance")
             st.markdown(final_state["guidance_text"], unsafe_allow_html=True)
-
     else:
         st.info("No tests added yet. Start by entering your first test data below.")
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
-
