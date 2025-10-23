@@ -90,7 +90,7 @@ def career_guidance_node(state: CounsellorState):
     try:
         # ✅ Updated to a currently supported Groq model
         response = client.chat.completions.create(
-            model="llama-3.3-70b-specdec",  # or "mixtral-8x7b"
+            model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": prompt}],
         )
         output = response.choices[0].message.content.strip()
@@ -207,3 +207,4 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
