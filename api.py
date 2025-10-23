@@ -111,7 +111,7 @@ app = graph.compile()
 # ========== STREAMLIT FRONTEND ===============================
 # ============================================================
 st.set_page_config(page_title="AI Career Counsellor", layout="centered")
-st.title("🎓 AI Career Counsellor with Progress Tracking + Groq LLM")
+st.title("🎓 AI enabled Career Assistance ")
 st.caption("An AI-powered system for personalized career guidance and academic analysis.")
 
 # ------------------------------------------------------------
@@ -207,4 +207,5 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
 
