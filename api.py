@@ -119,7 +119,7 @@ st.caption("An AI-powered system for personalized career guidance and academic a
 # ------------------------------------------------------------
 st.sidebar.title("🔑 User Authentication")
 auth_mode = st.sidebar.radio("Choose Action:", ["Login", "Register"])
-email = st.sidebar.text_input("Email")
+email = st.sidebar.text_input("Username")
 password = st.sidebar.text_input("Password", type="password")
 
 # Keep user state persistent
@@ -207,5 +207,6 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
 
 
