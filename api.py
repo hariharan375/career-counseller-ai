@@ -82,7 +82,7 @@ def career_guidance_node(state: CounsellorState):
     Provide:
     1. Personalized career guidance with improvement areas and clear action steps.
     2. Mention each subject's trend and what it means.
-    3. Markdown table of 10 best **Bachelor’s** colleges related to their interest according to the marks and capability nearby their given location, preferably along with their eligibility criteria and NIRF ranking in separate columns.
+    3. Markdown table of 10 best **Bachelor’s** colleges related to their interest according to the marks and capability nearby their given location, preferably along with their eligibility criteria and NIRF ranking 2025 in separate columns.
     4. Markdown table of 5 best **Master’s** programs (if applicable).
     5. End with a brief summary about feasible career options and their capabilities for the same, followed by a motivational note.
     """
@@ -187,9 +187,6 @@ if user:
             df = pd.DataFrame(st.session_state.test_scores)
             st.dataframe(df)
 
-            overall_avg = df.mean().mean()
-            st.write(f"**Overall Average Marks:** {overall_avg:.2f}")
-
             st.subheader("🧠 Get Personalized AI Career Guidance")
             student_name = st.text_input("Your Name")
             state_name = st.text_input("Your State (e.g., Tamil Nadu)")
@@ -249,3 +246,4 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
