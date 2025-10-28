@@ -82,9 +82,9 @@ def career_guidance_node(state: CounsellorState):
     Provide:
     1. Personalized career guidance with improvement areas and clear action steps.
     2. Mention each subject's trend and what it means.
-    3. Markdown table of 10 best **Bachelor’s** colleges related to their interest according to the marks and capability nearby their given location preferrably along with their eligibilty criteria and nirf ranking in separate columns.
+    3. Markdown table of 10 best **Bachelor’s** colleges related to their interest according to the marks and capability nearby their given location, preferably along with their eligibility criteria and NIRF ranking in separate columns.
     4. Markdown table of 5 best **Master’s** programs (if applicable).
-    5. End with the brief summary about the feasible career options and their capabilities for the same following with a motivational note.
+    5. End with a brief summary about feasible career options and their capabilities for the same, followed by a motivational note.
     """
 
     try:
@@ -118,12 +118,15 @@ st.caption("An AI-powered system for personalized career guidance and academic a
 # ------------------------------------------------------------
 st.sidebar.title("🔑 User Authentication")
 auth_mode = st.sidebar.radio("Choose Action:", ["Login", "Register"])
+
 email = st.sidebar.text_input("Username")
 password = st.sidebar.text_input("Password", type="password")
 
+# Initialize session state
 if "user" not in st.session_state:
     st.session_state.user = None
 
+# Register user
 if auth_mode == "Register" and st.sidebar.button("Create Account"):
     try:
         user = auth.create_user(email=email, password=password)
@@ -131,6 +134,7 @@ if auth_mode == "Register" and st.sidebar.button("Create Account"):
     except Exception as e:
         st.sidebar.error(f"⚠️ Error: {e}")
 
+# Login user
 if auth_mode == "Login" and st.sidebar.button("Login"):
     try:
         user = auth.get_user_by_email(email)
@@ -138,6 +142,14 @@ if auth_mode == "Login" and st.sidebar.button("Login"):
         st.sidebar.success(f"✅ Welcome {email}")
     except Exception as e:
         st.sidebar.error(f"⚠️ Login failed: {e}")
+
+# Logout user
+if st.session_state.user:
+    if st.sidebar.button("🚪 Logout"):
+        st.session_state.user = None
+        st.session_state.clear()
+        st.success("✅ You have been logged out successfully.")
+        st.stop()
 
 # ------------------------------------------------------------
 # 🧠 MAIN APP SECTION
@@ -193,7 +205,7 @@ if user:
                 )
                 final_state = app.invoke(input_state)
 
-                # Save this AI output to Firestore with timestamp
+                # Save AI guidance in Firestore with timestamp
                 db.collection("students").document(user.uid).collection("guidance_history").add({
                     "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "name": student_name,
@@ -205,7 +217,6 @@ if user:
 
                 st.subheader("📌 AI Career Guidance")
                 st.markdown(final_state["guidance_text"], unsafe_allow_html=True)
-
         else:
             st.info("No tests added yet. Start by entering your first test data below.")
 
@@ -215,7 +226,7 @@ if user:
     elif page == "Previous Analysis":
         st.subheader("🕒 Your Previous Career Guidance Reports")
 
-        # Fetch user's saved guidance history
+        # Fetch previous reports from Firebase
         reports_ref = (
             db.collection("students")
             .document(user.uid)
@@ -223,7 +234,6 @@ if user:
             .order_by("timestamp", direction=firestore.Query.DESCENDING)
             .stream()
         )
-
         reports = [doc.to_dict() for doc in reports_ref]
 
         if reports:
@@ -239,4 +249,3 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
-
