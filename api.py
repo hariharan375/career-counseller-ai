@@ -164,12 +164,14 @@ if not profile:
     st.subheader("🧾 Complete Your Profile")
     name = st.text_input("Enter your name")
     student_class = st.selectbox("Select your class/grade", [str(i) for i in range(8, 13)])
+    subjects_input = st.text_area("Enter subjects to track (comma-separated)", placeholder="e.g., Physics, Chemistry, Maths")
 
     if st.button("💾 Save Profile"):
+        subjects = [s.strip() for s in subjects_input.split(",") if s.strip()]
         db.collection("students").document(uid).set({
             "name": name,
             "class": student_class,
-            "subjects": [],
+            "subjects": subjects,
             "created_at": datetime.date.today().strftime("%Y-%m-%d"),
         })
         st.success("✅ Profile saved! Please refresh to continue.")
@@ -177,45 +179,43 @@ if not profile:
 else:
     student_name = profile.get("name", "")
     student_class_profile = profile.get("class", "")
-    st.success(f"👋 Hello {student_name} (Class {student_class_profile})")
-
-    # ========================================================
-    # SUBJECT MANAGEMENT
-    # ========================================================
     subjects = profile.get("subjects", [])
-
-    st.subheader("📘 Your Subjects")
-    if not subjects:
-        st.info("You haven't added any subjects yet.")
-        new_subjects = st.text_area(
-            "Enter subjects separated by commas (e.g., Physics, Chemistry, Maths)"
-        )
-        if st.button("➕ Save Subjects"):
-            subjects = [s.strip() for s in new_subjects.split(",") if s.strip()]
-            db.collection("students").document(uid).update({"subjects": subjects})
-            st.success("✅ Subjects saved! Please refresh.")
-            st.stop()
-    else:
-        st.write(f"✅ Current subjects: {', '.join(subjects)}")
-        if st.button("✏️ Edit Subjects"):
-            new_subjects = st.text_area(
-                "Update subjects (comma separated):", ", ".join(subjects)
-            )
-            if st.button("💾 Update Subjects"):
-                updated_subjects = [s.strip() for s in new_subjects.split(",") if s.strip()]
-                db.collection("students").document(uid).update({"subjects": updated_subjects})
-                st.success("✅ Subjects updated! Please refresh.")
-                st.stop()
+    st.success(f"👋 Hello {student_name} (Class {student_class_profile})")
 
     # ========================================================
     # MAIN NAVIGATION
     # ========================================================
-    page = st.sidebar.radio("📂 Navigate to:", ["Dashboard", "Previous Analysis"])
+    page = st.sidebar.radio("📂 Navigate to:", ["Profile", "Counsel", "Previous Analysis"])
 
     # ========================================================
-    # DASHBOARD PAGE
+    # PROFILE PAGE
     # ========================================================
-    if page == "Dashboard":
+    if page == "Profile":
+        st.subheader("👤 Profile Details")
+        st.write(f"**Name:** {student_name}")
+        st.write(f"**Class:** {student_class_profile}")
+        st.write(f"**Subjects:** {', '.join(subjects)}")
+
+        st.markdown("---")
+        st.subheader("✏️ Edit Profile")
+        new_name = st.text_input("Edit Name", student_name)
+        new_class = st.selectbox("Edit Class", [str(i) for i in range(8, 13)], index=[str(i) for i in range(8, 13)].index(student_class_profile))
+        new_subjects = st.text_area("Edit Subjects (comma separated):", ", ".join(subjects))
+
+        if st.button("💾 Update Profile"):
+            updated_subjects = [s.strip() for s in new_subjects.split(",") if s.strip()]
+            db.collection("students").document(uid).update({
+                "name": new_name,
+                "class": new_class,
+                "subjects": updated_subjects,
+            })
+            st.success("✅ Profile updated! Please refresh.")
+            st.stop()
+
+    # ========================================================
+    # COUNSEL PAGE (ENTER MARKS + AI GUIDANCE)
+    # ========================================================
+    elif page == "Counsel":
         st.subheader("📚 Enter New Test Marks")
         test_scores = []
 
@@ -291,4 +291,4 @@ else:
                     st.markdown("---")
                     st.markdown(report.get("guidance_text", "_No guidance text found._"), unsafe_allow_html=True)
         else:
-            st.info("No previous analyses found. Generate your first guidance from the Dashboard.")
+            st.info("No previous analyses found. Generate your first guidance from the Counsel page.")
