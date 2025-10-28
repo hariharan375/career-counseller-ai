@@ -173,8 +173,8 @@ if user:
         for doc in tests_ref:
             st.session_state.test_scores.append(doc.to_dict())
 
-        # Class input (NEW)
-        student_class = st.selectbox("Class / Grade Studying", ["9", "10", "11", "12", "College 1st Year", "College 2nd Year", "College 3rd Year", "Other"])
+        # Class input (updated: only 8–12)
+        student_class = st.selectbox("Class / Grade Studying", ["8", "9", "10", "11", "12"])
 
         # Test inputs
         physics = st.number_input("Physics Marks", 0, 100, 0)
@@ -182,23 +182,25 @@ if user:
         maths = st.number_input("Maths Marks", 0, 100, 0)
 
         if st.button("➕ Add Test"):
+            # Store only date (no time)
+            test_date = datetime.datetime.now().strftime("%Y-%m-%d")
             test_data = {
                 "Class": student_class,
                 "Physics": physics,
                 "Chemistry": chemistry,
                 "Maths": maths,
-                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "Date": test_date,
             }
             db.collection("students").document(user.uid).collection("tests").add(test_data)
             st.session_state.test_scores.append(test_data)
             st.success("✅ Test data added successfully! Please refresh to view updated list.")
 
-        # Display test history with class column
+        # Display test history with class & date
         if st.session_state.test_scores:
             st.subheader("📊 Your Test History")
             df = pd.DataFrame(st.session_state.test_scores)
-            if "timestamp" in df.columns:
-                df = df.sort_values(by="timestamp", ascending=False)
+            if "Date" in df.columns:
+                df = df.sort_values(by="Date", ascending=False)
             st.dataframe(df)
 
             # Guidance section
@@ -217,9 +219,9 @@ if user:
                 )
                 final_state = app.invoke(input_state)
 
-                # Save AI guidance in Firestore with timestamp
+                # Save AI guidance in Firestore with only date
                 db.collection("students").document(user.uid).collection("guidance_history").add({
-                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d"),
                     "name": student_name,
                     "email": email,
                     "state": state_name,
