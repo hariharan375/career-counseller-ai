@@ -43,6 +43,7 @@ def career_guidance_node(state: CounsellorState):
     trends = {}
     subjects = list(state["test_scores"][0].keys())
     subjects.remove("class")
+    subjects.remove("date_entered")
 
     def get_trend(scores):
         if len(scores) < 2:
@@ -68,7 +69,7 @@ def career_guidance_node(state: CounsellorState):
     Provide:
     1. Personalized career guidance with improvement areas and clear action steps.
     2. Mention each subject's trend and what it means.
-    3. Markdown table of 10 best **Bachelor’s** colleges related to their interest according to the marks and capability nearby their given location, preferably along with their eligibility criteria and NIRF ranking 2025 in separate columns.
+    3. Markdown table of 10 best **Bachelor’s** colleges (their location and avg fees as columns) related to their interest according to the marks and capability nearby their given location, preferably along with their eligibility criteria and NIRF ranking 2025 in separate columns.
     4. Markdown table of 5 best **Master’s** programs (if applicable).
     5. End with a brief summary about feasible career options and their capabilities for the same, followed by a motivational note.
     """
@@ -202,7 +203,7 @@ if user:
 
             st.write(f"Currently tracking subjects: {', '.join(subjects)}")
 
-            test_data = {"class": student_class}
+            test_data = {"class": student_class, "date_entered": datetime.datetime.now().strftime("%Y-%m-%d")}
             for sub in subjects:
                 test_data[sub] = st.number_input(f"{sub} Marks", 0, 100, 0)
 
@@ -218,8 +219,8 @@ if user:
                     if col in df.columns:
                         df = df.drop(columns=[col])
 
-                # Reorder columns → Class first, then subjects
-                columns_order = ["class"] + [sub for sub in subjects if sub in df.columns]
+                # Reorder columns → Class first, then Date, then subjects
+                columns_order = ["class", "date_entered"] + [sub for sub in subjects if sub in df.columns]
                 other_columns = [c for c in df.columns if c not in columns_order]
                 df = df[columns_order + other_columns]
 
