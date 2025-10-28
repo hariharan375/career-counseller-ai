@@ -82,9 +82,9 @@ def career_guidance_node(state: CounsellorState):
     Provide:
     1. Personalized career guidance with improvement areas and clear action steps.
     2. Mention each subject's trend and what it means.
-    3. Markdown table of 10 best **Bachelor’s** colleges related to their interest in India.
+    3. Markdown table of 10 best **Bachelor’s** colleges related to their interest according to the marks and capability nearby their given location preferrably along with their eligibilty criteria and nirf ranking in separate columns.
     4. Markdown table of 5 best **Master’s** programs (if applicable).
-    5. End with a motivational note.
+    5. End with the brief summary about the feasible career options and their capabilities for the same following with a motivational note.
     """
 
     try:
@@ -239,3 +239,4 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
