@@ -19,7 +19,6 @@ if not firebase_admin._apps:
             st.error(f"⚠️ Failed to load Firebase key from secrets: {e}")
             st.stop()
     else:
-        # Local fallback for development
         cred = credentials.Certificate(
             "career counseller ai/career-counsellor-ai-firebase-adminsdk-fbsvc-ad36c831af.json"
         )
@@ -88,7 +87,6 @@ def career_guidance_node(state: CounsellorState):
     """
 
     try:
-        # ✅ Updated to a currently supported Groq model
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": prompt}],
@@ -110,8 +108,8 @@ app = graph.compile()
 # ============================================================
 # ========== STREAMLIT FRONTEND ===============================
 # ============================================================
-st.set_page_config(page_title="AI Career Counsellor", layout="centered")
-st.title("🎓 AI enabled Career Assistance ")
+st.set_page_config(page_title="AI Career Counsellor", layout="wide")
+st.title("🎓 AI Enabled Career Assistance")
 st.caption("An AI-powered system for personalized career guidance and academic analysis.")
 
 # ------------------------------------------------------------
@@ -146,67 +144,86 @@ if auth_mode == "Login" and st.sidebar.button("Login"):
 # ------------------------------------------------------------
 user = st.session_state.user
 if user:
-    st.success(f"Logged in as: {email}")
+    st.sidebar.success(f"Logged in as: {email}")
 
-    # Retrieve test data
-    st.session_state.test_scores = []
-    tests_ref = db.collection("students").document(user.uid).collection("tests").stream()
-    for doc in tests_ref:
-        st.session_state.test_scores.append(doc.to_dict())
+    # Navigation between pages
+    page = st.sidebar.radio("📂 Navigate to:", ["Dashboard", "Previous Analysis"])
 
-    # Input new test data
-    st.subheader("📚 Enter New Test Marks")
-    physics = st.number_input("Physics Marks", 0, 100, 0)
-    chemistry = st.number_input("Chemistry Marks", 0, 100, 0)
-    maths = st.number_input("Maths Marks", 0, 100, 0)
+    if page == "Dashboard":
+        # Retrieve test data
+        st.session_state.test_scores = []
+        tests_ref = db.collection("students").document(user.uid).collection("tests").stream()
+        for doc in tests_ref:
+            st.session_state.test_scores.append(doc.to_dict())
 
-    if st.button("➕ Add Test"):
-        test_data = {"Physics": physics, "Chemistry": chemistry, "Maths": maths}
-        db.collection("students").document(user.uid).collection("tests").add(test_data)
-        st.session_state.test_scores.append(test_data)
-        st.success("✅ Test data added successfully! Please refresh to view updated list.")
+        st.subheader("📚 Enter New Test Marks")
+        physics = st.number_input("Physics Marks", 0, 100, 0)
+        chemistry = st.number_input("Chemistry Marks", 0, 100, 0)
+        maths = st.number_input("Maths Marks", 0, 100, 0)
 
-    # Display test history
-    if st.session_state.test_scores:
-        st.subheader("📊 Your Test History")
-        df = pd.DataFrame(st.session_state.test_scores)
-        st.dataframe(df)
+        if st.button("➕ Add Test"):
+            test_data = {"Physics": physics, "Chemistry": chemistry, "Maths": maths}
+            db.collection("students").document(user.uid).collection("tests").add(test_data)
+            st.session_state.test_scores.append(test_data)
+            st.success("✅ Test data added successfully! Please refresh to view updated list.")
 
-        overall_avg = df.mean().mean()
-        st.write(f"**Overall Average Marks:** {overall_avg:.2f}")
+        if st.session_state.test_scores:
+            st.subheader("📊 Your Test History")
+            df = pd.DataFrame(st.session_state.test_scores)
+            st.dataframe(df)
 
-        # Additional inputs for AI
-        st.subheader("🧠 Get Personalized AI Career Guidance")
-        student_name = st.text_input("Your Name")
-        state_name = st.text_input("Your State (e.g., Tamil Nadu)")
-        requirement = st.text_input("Career Interest (e.g., Engineering, Medicine, Design)")
+            overall_avg = df.mean().mean()
+            st.write(f"**Overall Average Marks:** {overall_avg:.2f}")
 
-        if st.button("🚀 Generate Guidance"):
-            input_state = CounsellorState(
-                student_name=student_name,
-                test_scores=st.session_state.test_scores,
-                state=state_name,
-                requirement=requirement,
-                guidance_text=""
-            )
-            final_state = app.invoke(input_state)
+            # Generate AI Guidance
+            st.subheader("🧠 Get Personalized AI Career Guidance")
+            student_name = st.text_input("Your Name")
+            state_name = st.text_input("Your State (e.g., Tamil Nadu)")
+            requirement = st.text_input("Career Interest (e.g., Engineering, Medicine, Design)")
 
-            # Save results
-            db.collection("students").document(user.uid).set({
-                "name": student_name,
-                "email": email,
-                "state": state_name,
-                "requirement": requirement,
-                "last_guidance": final_state["guidance_text"]
-            })
+            if st.button("🚀 Generate Guidance"):
+                input_state = CounsellorState(
+                    student_name=student_name,
+                    test_scores=st.session_state.test_scores,
+                    state=state_name,
+                    requirement=requirement,
+                    guidance_text=""
+                )
+                final_state = app.invoke(input_state)
 
-            st.subheader("📌 AI Career Guidance")
-            st.markdown(final_state["guidance_text"], unsafe_allow_html=True)
-    else:
-        st.info("No tests added yet. Start by entering your first test data below.")
+                # Save each output in a subcollection for version history
+                db.collection("students").document(user.uid).collection("guidance_history").add({
+                    "name": student_name,
+                    "email": email,
+                    "state": state_name,
+                    "requirement": requirement,
+                    "guidance_text": final_state["guidance_text"]
+                })
 
+                st.subheader("📌 AI Career Guidance")
+                st.markdown(final_state["guidance_text"], unsafe_allow_html=True)
+        else:
+            st.info("No tests added yet. Start by entering your first test data below.")
+
+    elif page == "Previous Analysis":
+        st.subheader("🕒 Your Previous Career Guidance Reports")
+
+        reports_ref = db.collection("students").document(user.uid).collection("guidance_history").stream()
+        reports = []
+        for doc in reports_ref:
+            data = doc.to_dict()
+            reports.append(data)
+
+        if reports:
+            for idx, report in enumerate(sorted(reports, key=lambda x: x.get("timestamp", ""), reverse=True), start=1):
+                st.markdown(f"### 📄 Report {idx}: {report.get('requirement', 'Unknown Interest')}")
+                st.write(f"👤 **Name:** {report.get('name', 'N/A')}")
+                st.write(f"📍 **State:** {report.get('state', 'N/A')}")
+                st.write(f"✉️ **Email:** {report.get('email', 'N/A')}")
+                st.markdown("#### 🧠 AI Guidance")
+                st.markdown(report.get("guidance_text", "_No guidance text found._"), unsafe_allow_html=True)
+                st.markdown("---")
+        else:
+            st.info("No previous analyses found. Generate your first guidance from the Dashboard.")
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
-
-
-
