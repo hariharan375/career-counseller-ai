@@ -168,25 +168,40 @@ if user:
         st.subheader("📚 Enter New Test Marks")
         st.session_state.test_scores = []
 
+        # Load previous tests from Firestore
         tests_ref = db.collection("students").document(user.uid).collection("tests").stream()
         for doc in tests_ref:
             st.session_state.test_scores.append(doc.to_dict())
 
+        # Class input (NEW)
+        student_class = st.selectbox("Class / Grade Studying", ["9", "10", "11", "12", "College 1st Year", "College 2nd Year", "College 3rd Year", "Other"])
+
+        # Test inputs
         physics = st.number_input("Physics Marks", 0, 100, 0)
         chemistry = st.number_input("Chemistry Marks", 0, 100, 0)
         maths = st.number_input("Maths Marks", 0, 100, 0)
 
         if st.button("➕ Add Test"):
-            test_data = {"Physics": physics, "Chemistry": chemistry, "Maths": maths}
+            test_data = {
+                "Class": student_class,
+                "Physics": physics,
+                "Chemistry": chemistry,
+                "Maths": maths,
+                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            }
             db.collection("students").document(user.uid).collection("tests").add(test_data)
             st.session_state.test_scores.append(test_data)
             st.success("✅ Test data added successfully! Please refresh to view updated list.")
 
+        # Display test history with class column
         if st.session_state.test_scores:
             st.subheader("📊 Your Test History")
             df = pd.DataFrame(st.session_state.test_scores)
+            if "timestamp" in df.columns:
+                df = df.sort_values(by="timestamp", ascending=False)
             st.dataframe(df)
 
+            # Guidance section
             st.subheader("🧠 Get Personalized AI Career Guidance")
             student_name = st.text_input("Your Name")
             state_name = st.text_input("Your State (e.g., Tamil Nadu)")
@@ -223,7 +238,6 @@ if user:
     elif page == "Previous Analysis":
         st.subheader("🕒 Your Previous Career Guidance Reports")
 
-        # Fetch previous reports from Firebase
         reports_ref = (
             db.collection("students")
             .document(user.uid)
@@ -243,7 +257,5 @@ if user:
                     st.markdown(report.get("guidance_text", "_No guidance text found._"), unsafe_allow_html=True)
         else:
             st.info("No previous analyses found. Generate your first guidance from the Dashboard.")
-
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
-
