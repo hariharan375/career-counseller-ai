@@ -43,7 +43,6 @@ def career_guidance_node(state: CounsellorState):
     trends = {}
     subjects = list(state["test_scores"][0].keys())
     subjects.remove("class")
-    subjects.remove("date_entered")
 
     def get_trend(scores):
         if len(scores) < 2:
@@ -203,7 +202,7 @@ if user:
 
             st.write(f"Currently tracking subjects: {', '.join(subjects)}")
 
-            test_data = {"class": student_class, "date_entered": datetime.datetime.now().strftime("%Y-%m-%d")}
+            test_data = {"class": student_class}
             for sub in subjects:
                 test_data[sub] = st.number_input(f"{sub} Marks", 0, 100, 0)
 
@@ -219,8 +218,8 @@ if user:
                     if col in df.columns:
                         df = df.drop(columns=[col])
 
-                # Reorder columns → Class first, then Date, then subjects
-                columns_order = ["class", "date_entered"] + [sub for sub in subjects if sub in df.columns]
+                # Reorder columns → Class first, then subjects
+                columns_order = ["class"] + [sub for sub in subjects if sub in df.columns]
                 other_columns = [c for c in df.columns if c not in columns_order]
                 df = df[columns_order + other_columns]
 
