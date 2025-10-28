@@ -168,42 +168,35 @@ if user:
         st.subheader("📚 Enter New Test Marks")
         st.session_state.test_scores = []
 
-        # Load previous tests from Firestore
         tests_ref = db.collection("students").document(user.uid).collection("tests").stream()
         for doc in tests_ref:
             st.session_state.test_scores.append(doc.to_dict())
 
-        # Class input (updated: only 8–12)
-        student_class = st.selectbox("Class / Grade Studying", ["8", "9", "10", "11", "12"])
-
-        # Test inputs
+        class_grade = st.selectbox("Class/Grade Studying", options=[str(i) for i in range(8, 13)])
         physics = st.number_input("Physics Marks", 0, 100, 0)
         chemistry = st.number_input("Chemistry Marks", 0, 100, 0)
         maths = st.number_input("Maths Marks", 0, 100, 0)
 
         if st.button("➕ Add Test"):
-            # Store only date (no time)
-            test_date = datetime.datetime.now().strftime("%Y-%m-%d")
             test_data = {
-                "Class": student_class,
                 "Physics": physics,
                 "Chemistry": chemistry,
                 "Maths": maths,
-                "Date": test_date,
+                "Class": class_grade,
+                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d")
             }
             db.collection("students").document(user.uid).collection("tests").add(test_data)
             st.session_state.test_scores.append(test_data)
             st.success("✅ Test data added successfully! Please refresh to view updated list.")
 
-        # Display test history with class & date
         if st.session_state.test_scores:
             st.subheader("📊 Your Test History")
             df = pd.DataFrame(st.session_state.test_scores)
-            if "Date" in df.columns:
-                df = df.sort_values(by="Date", ascending=False)
+            # Remove timestamp column from display
+            if "timestamp" in df.columns:
+                df = df.drop(columns=["timestamp"])
             st.dataframe(df)
 
-            # Guidance section
             st.subheader("🧠 Get Personalized AI Career Guidance")
             student_name = st.text_input("Your Name")
             state_name = st.text_input("Your State (e.g., Tamil Nadu)")
@@ -219,7 +212,7 @@ if user:
                 )
                 final_state = app.invoke(input_state)
 
-                # Save AI guidance in Firestore with only date
+                # Save AI guidance in Firestore
                 db.collection("students").document(user.uid).collection("guidance_history").add({
                     "timestamp": datetime.datetime.now().strftime("%Y-%m-%d"),
                     "name": student_name,
@@ -240,6 +233,7 @@ if user:
     elif page == "Previous Analysis":
         st.subheader("🕒 Your Previous Career Guidance Reports")
 
+        # Fetch previous reports from Firebase
         reports_ref = (
             db.collection("students")
             .document(user.uid)
@@ -259,5 +253,6 @@ if user:
                     st.markdown(report.get("guidance_text", "_No guidance text found._"), unsafe_allow_html=True)
         else:
             st.info("No previous analyses found. Generate your first guidance from the Dashboard.")
+
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
