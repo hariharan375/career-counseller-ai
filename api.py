@@ -6,6 +6,7 @@ from firebase_admin import credentials, firestore, auth
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Dict, List
 from groq import Groq
+import datetime
 
 # ============================================================
 # ========== FIREBASE INITIALIZATION ==========================
@@ -120,7 +121,6 @@ auth_mode = st.sidebar.radio("Choose Action:", ["Login", "Register"])
 email = st.sidebar.text_input("Username")
 password = st.sidebar.text_input("Password", type="password")
 
-# Keep user state persistent
 if "user" not in st.session_state:
     st.session_state.user = None
 
@@ -149,14 +149,17 @@ if user:
     # Navigation between pages
     page = st.sidebar.radio("📂 Navigate to:", ["Dashboard", "Previous Analysis"])
 
+    # --------------------------------------------------------
+    # 🧾 DASHBOARD PAGE
+    # --------------------------------------------------------
     if page == "Dashboard":
-        # Retrieve test data
+        st.subheader("📚 Enter New Test Marks")
         st.session_state.test_scores = []
+
         tests_ref = db.collection("students").document(user.uid).collection("tests").stream()
         for doc in tests_ref:
             st.session_state.test_scores.append(doc.to_dict())
 
-        st.subheader("📚 Enter New Test Marks")
         physics = st.number_input("Physics Marks", 0, 100, 0)
         chemistry = st.number_input("Chemistry Marks", 0, 100, 0)
         maths = st.number_input("Maths Marks", 0, 100, 0)
@@ -175,7 +178,6 @@ if user:
             overall_avg = df.mean().mean()
             st.write(f"**Overall Average Marks:** {overall_avg:.2f}")
 
-            # Generate AI Guidance
             st.subheader("🧠 Get Personalized AI Career Guidance")
             student_name = st.text_input("Your Name")
             state_name = st.text_input("Your State (e.g., Tamil Nadu)")
@@ -191,8 +193,9 @@ if user:
                 )
                 final_state = app.invoke(input_state)
 
-                # Save each output in a subcollection for version history
+                # Save this AI output to Firestore with timestamp
                 db.collection("students").document(user.uid).collection("guidance_history").add({
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "name": student_name,
                     "email": email,
                     "state": state_name,
@@ -202,28 +205,37 @@ if user:
 
                 st.subheader("📌 AI Career Guidance")
                 st.markdown(final_state["guidance_text"], unsafe_allow_html=True)
+
         else:
             st.info("No tests added yet. Start by entering your first test data below.")
 
+    # --------------------------------------------------------
+    # 🕒 PREVIOUS ANALYSIS PAGE
+    # --------------------------------------------------------
     elif page == "Previous Analysis":
         st.subheader("🕒 Your Previous Career Guidance Reports")
 
-        reports_ref = db.collection("students").document(user.uid).collection("guidance_history").stream()
-        reports = []
-        for doc in reports_ref:
-            data = doc.to_dict()
-            reports.append(data)
+        # Fetch user's saved guidance history
+        reports_ref = (
+            db.collection("students")
+            .document(user.uid)
+            .collection("guidance_history")
+            .order_by("timestamp", direction=firestore.Query.DESCENDING)
+            .stream()
+        )
+
+        reports = [doc.to_dict() for doc in reports_ref]
 
         if reports:
-            for idx, report in enumerate(sorted(reports, key=lambda x: x.get("timestamp", ""), reverse=True), start=1):
-                st.markdown(f"### 📄 Report {idx}: {report.get('requirement', 'Unknown Interest')}")
-                st.write(f"👤 **Name:** {report.get('name', 'N/A')}")
-                st.write(f"📍 **State:** {report.get('state', 'N/A')}")
-                st.write(f"✉️ **Email:** {report.get('email', 'N/A')}")
-                st.markdown("#### 🧠 AI Guidance")
-                st.markdown(report.get("guidance_text", "_No guidance text found._"), unsafe_allow_html=True)
-                st.markdown("---")
+            for idx, report in enumerate(reports, start=1):
+                with st.expander(f"📄 Report {idx}: {report.get('requirement', 'Unknown Interest')} ({report.get('timestamp', 'No date')})"):
+                    st.write(f"👤 **Name:** {report.get('name', 'N/A')}")
+                    st.write(f"📍 **State:** {report.get('state', 'N/A')}")
+                    st.write(f"✉️ **Email:** {report.get('email', 'N/A')}")
+                    st.markdown("---")
+                    st.markdown(report.get("guidance_text", "_No guidance text found._"), unsafe_allow_html=True)
         else:
             st.info("No previous analyses found. Generate your first guidance from the Dashboard.")
+
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
