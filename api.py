@@ -192,7 +192,7 @@ if user:
         # --------------------------------------------------------
         # 🎯 COUNSEL PAGE
         # --------------------------------------------------------
-        elif page == "Counsel":
+        elif page == "Dashboard":
             st.subheader("🧠 Enter Your Test Marks")
 
             test_scores = []
@@ -281,3 +281,4 @@ if user:
                 st.info("No previous analyses found.")
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
