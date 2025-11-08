@@ -197,37 +197,37 @@ if user:
             st.info("Please rate each statement from 1 (Strongly Disagree) to 5 (Strongly Agree). You can submit only once.")
 
             questions = [
-                "I love understanding how engines, bikes, and machines work...",
-                "I am interested in learning how rockets work...",
-                "The idea of building or programming a robot excites me.",
-                "I am interested in studying the human body...",
-                "I am curious to understand how a human mind works...",
-                "I am curious about maintaining law and order...",
-                "I like creating visuals, designs, or media...",
-                "I get curious about how gadgets, circuits, and electrical systems work.",
-                "I am interested in exploring natural herbs...",
-                "I enjoy designing buildings or spaces...",
-                "I’m fascinated by how bridges and industries are designed...",
-                "I enjoy solving real-life problems using physics and math.",
-                "I am curious about how medicines work...",
-                "I am interested in designing clothes and fashion.",
-                "I am interested in understanding trade and business.",
-                "I am interested in learning about laws and justice.",
-                "I enjoy learning how hotels and tourism are managed.",
-                "I would like to pursue my favorite sport as a career.",
-                "I like learning about managing organizations.",
-                "I like learning about society and cultures.",
-                "I would like to learn how to care for teeth.",
-                "I enjoy solving problems using computers.",
-                "I am curious about how living organisms can solve health problems.",
-                "I want to learn how to treat and care for animals.",
-                "I would like to join NDA to defend the country.",
-                "I want to understand how tech improves farming.",
-                "I am curious about accounting and finance.",
-                "I would like to work in government administration.",
-                "I enjoy reading, writing, and understanding stories.",
-                "I am interested in how investments and money work.",
-                "I am interested in international relations and diplomacy."
+                "1. I love understanding how engines, bikes, and machines work and imagining how to make them faster or more efficient.",
+                "2. I am interested in learning how rockets work and how humans explore space and other planets.",
+                "3. The idea of building or programming a robot that can move or think on its own excites me.",
+                "4. I am interested in studying the human body and understanding how diseases are diagnosed and treated.",
+                "5. I am curious to understand how a human mind works and how people react in different situations.",
+                "6. I am curious about maintaining law and order and serving the public as part of the police services.",
+                "7. I like creating visuals, designs, or media that express ideas and information clearly.",
+                "8. I get curious about how gadgets, circuits, and electrical systems power our homes and devices.",
+                "9. I am interested in exploring how natural herbs and traditional healing methods help maintain good health.",
+                "10. I enjoy imagining and designing buildings, spaces, and structures that are both functional and beautiful.",
+                "11. I’m fascinated by how bridges, buildings, or industries are designed to be safe, efficient, and sustainable.",
+                "12. I enjoy solving real-life problems using physics and mathematical concepts.",
+                "13. I am curious about how medicines work in the body and how physical therapy helps in recovery.",
+                "14. I am interested in designing clothes, following fashion trends, and creating my own style ideas.",
+                "15. I am interested in understanding trade, business transactions, and how markets operate.",
+                "16. I am interested in learning about laws, legal systems, and how justice is delivered.",
+                "17. I enjoy learning how hotels, restaurants, and tourism services are managed to provide great experiences.",
+                "18. I would like to pursue my favorite sport as a professional career.",
+                "19. I like learning about managing organizations, planning work, and improving business operations.",
+                "20. I like learning about society, cultures, and how communities interact and develop.",
+                "21. I would like to learn how to care for teeth, gums, and overall oral health.",
+                "22. I enjoy solving problems using computers and want to learn how apps, games, or AI tools are created.",
+                "23. I am curious about how living organisms can be used to develop medicines, improve crops, or solve health problems.",
+                "24. I want to learn how to treat and take care of animals and understand their health conditions.",
+                "25. I would like to join NDA to receive joint training for the army, navy, or air force to defend the country.",
+                "26. I want to understand how science and technology help in improving farming and food production.",
+                "27. I am curious about accounting, auditing, and how financial decisions are made in companies.",
+                "28. I would like to work in government administration and contribute to policy-making and governance.",
+                "29. I enjoy reading, writing, and understanding stories, poetry, or different languages.",
+                "30. I am interested in how money, investments, and financial planning work in businesses and daily life.",
+                "31. I am interested in representing my country abroad and working in international relations and diplomacy."
             ]
 
             responses = {}
@@ -328,3 +328,4 @@ if user:
                 st.info("No previous analyses found.")
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
