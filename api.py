@@ -68,9 +68,9 @@ def career_guidance_node(state: CounsellorState):
     Provide:
     1. Personalized career guidance with improvement areas and clear action steps.
     2. Mention each subject's trend and what it means.
-    3. Markdown table of 10 best **Bachelor’s** colleges (their location and avg fees as columns) related to their interest according to the marks and capability nearby their given location, preferably along with their eligibility criteria and NIRF ranking 2025 in separate columns.
-    4. Markdown table of 5 best **Master’s** programs (if applicable).
-    5. End with a brief summary about feasible career options and their capabilities for the same, followed by a motivational note.
+    3. Markdown table of 10 best Bachelor’s colleges (with location, fees, eligibility, and NIRF 2025 rank).
+    4. Markdown table of 5 best Master’s programs (if applicable).
+    5. End with a motivational summary.
     """
 
     response = client.chat.completions.create(
@@ -88,7 +88,7 @@ graph.add_edge("career_guidance", END)
 app = graph.compile()
 
 # ============================================================
-# ========== STREAMLIT FRONTEND ===============================
+# ========== STREAMLIT FRONTEND ==============================
 # ============================================================
 st.set_page_config(page_title="AI Career Counsellor", layout="wide")
 st.title("🎓 AI Enabled Career Assistance")
@@ -137,61 +137,113 @@ user = st.session_state.user
 if user:
     uid = user.uid
 
-    # Load or create profile
     def get_profile(uid):
         doc = db.collection("students").document(uid).get()
         return doc.to_dict() if doc.exists else None
 
     profile = get_profile(uid)
 
+    # ================= FIRST TIME PROFILE CREATION ====================
     if not profile:
         st.subheader("👋 Welcome! Let’s set up your profile.")
         name = st.text_input("Enter your name:")
         class_studying = st.selectbox("Select your class:", [str(i) for i in range(8, 13)])
-        subjects_input = st.text_area(
-            "Enter your subjects separated by commas (e.g., Physics, Chemistry, Maths):"
-        )
+        subjects_input = st.text_area("Enter your subjects (comma-separated):")
 
         if st.button("💾 Save Profile"):
             subjects = [s.strip() for s in subjects_input.split(",") if s.strip()]
-            db.collection("students").document(uid).set(
-                {"name": name, "class": class_studying, "subjects": subjects}
-            )
+            db.collection("students").document(uid).set({
+                "name": name,
+                "class": class_studying,
+                "subjects": subjects,
+                "questionnaire_done": False
+            })
             st.success("✅ Profile created! Please refresh to continue.")
             st.stop()
 
     else:
-        # Profile exists
         student_name = profile.get("name", "")
         student_class = profile.get("class", "")
         subjects = profile.get("subjects", [])
+        questionnaire_done = profile.get("questionnaire_done", False)
+
         st.sidebar.success(f"Hello, {student_name}! 👋")
+        nav_pages = ["Profile Details", "Counsel", "Previous Analysis"]
+        if not questionnaire_done:
+            nav_pages.insert(1, "Questionnaire")
 
-        # Navigation
-        page = st.sidebar.radio("📂 Navigate to:", ["Profile Details", "Counsel", "Previous Analysis"])
+        page = st.sidebar.radio("📂 Navigate to:", nav_pages)
 
-        # --------------------------------------------------------
-        # 🧾 PROFILE DETAILS PAGE
-        # --------------------------------------------------------
+        # ---------------- Profile Page -----------------
         if page == "Profile Details":
             st.subheader("📋 Profile Details")
 
             new_name = st.text_input("Your Name", value=student_name)
-            new_class = st.selectbox("Your Class", [str(i) for i in range(8, 13)], index=int(student_class) - 8)
+            new_class = st.selectbox("Your Class", [str(i) for i in range(8, 13)],
+                                     index=int(student_class) - 8)
             subjects_str = ", ".join(subjects)
             new_subjects = st.text_area("Subjects (comma-separated):", value=subjects_str)
 
             if st.button("💾 Update Profile"):
                 updated_subjects = [s.strip() for s in new_subjects.split(",") if s.strip()]
-                db.collection("students").document(uid).update(
-                    {"name": new_name, "class": new_class, "subjects": updated_subjects}
-                )
-                st.success("✅ Profile updated! Please refresh.")
+                db.collection("students").document(uid).update({
+                    "name": new_name, "class": new_class, "subjects": updated_subjects
+                })
+                st.success("✅ Profile updated! Refresh to see changes.")
+
+        # ---------------- Questionnaire Page -----------------
+        elif page == "Questionnaire":
+            st.subheader("🧩 Career Interest Questionnaire")
+            st.info("Please rate each statement from 1 (Strongly Disagree) to 5 (Strongly Agree). You can submit only once.")
+
+            questions = [
+                "I love understanding how engines, bikes, and machines work...",
+                "I am interested in learning how rockets work...",
+                "The idea of building or programming a robot excites me.",
+                "I am interested in studying the human body...",
+                "I am curious to understand how a human mind works...",
+                "I am curious about maintaining law and order...",
+                "I like creating visuals, designs, or media...",
+                "I get curious about how gadgets, circuits, and electrical systems work.",
+                "I am interested in exploring natural herbs...",
+                "I enjoy designing buildings or spaces...",
+                "I’m fascinated by how bridges and industries are designed...",
+                "I enjoy solving real-life problems using physics and math.",
+                "I am curious about how medicines work...",
+                "I am interested in designing clothes and fashion.",
+                "I am interested in understanding trade and business.",
+                "I am interested in learning about laws and justice.",
+                "I enjoy learning how hotels and tourism are managed.",
+                "I would like to pursue my favorite sport as a career.",
+                "I like learning about managing organizations.",
+                "I like learning about society and cultures.",
+                "I would like to learn how to care for teeth.",
+                "I enjoy solving problems using computers.",
+                "I am curious about how living organisms can solve health problems.",
+                "I want to learn how to treat and care for animals.",
+                "I would like to join NDA to defend the country.",
+                "I want to understand how tech improves farming.",
+                "I am curious about accounting and finance.",
+                "I would like to work in government administration.",
+                "I enjoy reading, writing, and understanding stories.",
+                "I am interested in how investments and money work.",
+                "I am interested in international relations and diplomacy."
+            ]
+
+            responses = {}
+            for i, q in enumerate(questions, 1):
+                responses[f"Q{i}"] = st.slider(q, 1, 5, 3)
+
+            if st.button("✅ Submit Responses"):
+                db.collection("students").document(uid).collection("questionnaire").add({
+                    "responses": responses,
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d")
+                })
+                db.collection("students").document(uid).update({"questionnaire_done": True})
+                st.success("🎯 Questionnaire submitted successfully! You can’t edit it later.")
                 st.stop()
 
-        # --------------------------------------------------------
-        # 🎯 COUNSEL PAGE
-        # --------------------------------------------------------
+        # ---------------- Counsel Page -----------------
         elif page == "Counsel":
             st.subheader("🧠 Enter Your Test Marks")
 
@@ -202,36 +254,33 @@ if user:
 
             st.write(f"Currently tracking subjects: {', '.join(subjects)}")
 
-            test_data = {"class": student_class}
+            test_data = {
+                "class": student_class,
+                "date_entered": datetime.datetime.now().strftime("%Y-%m-%d")
+            }
             for sub in subjects:
                 test_data[sub] = st.number_input(f"{sub} Marks", 0, 100, 0)
 
             if st.button("➕ Add Test"):
                 db.collection("students").document(uid).collection("tests").add(test_data)
-                st.success("✅ Test added successfully! Please refresh to view.")
+                st.success("✅ Test added successfully! Refresh to view.")
 
             if test_scores:
                 st.subheader("📊 Your Test History")
-
                 df = pd.DataFrame(test_scores)
-                for col in ["timestamp", "id"]:
+                for col in ["id"]:
                     if col in df.columns:
                         df = df.drop(columns=[col])
 
-                # Reorder columns → Class first, then subjects
-                columns_order = ["class"] + [sub for sub in subjects if sub in df.columns]
+                columns_order = ["class", "date_entered"] + [sub for sub in subjects if sub in df.columns]
                 other_columns = [c for c in df.columns if c not in columns_order]
                 df = df[columns_order + other_columns]
 
-                st.dataframe(
-                    df.style.set_properties(**{'text-align': 'center'}).set_table_styles([
-                        {'selector': 'th', 'props': [('text-align', 'center')]}
-                    ])
-                )
+                st.dataframe(df)
 
                 st.subheader("🚀 Generate AI Career Guidance")
-                state_name = st.text_input("Your State (e.g., Tamil Nadu)")
-                requirement = st.text_input("Career Interest (e.g., Engineering, Medicine, Design)")
+                state_name = st.text_input("Your State:")
+                requirement = st.text_input("Career Interest:")
 
                 if st.button("💡 Get Guidance"):
                     input_state = CounsellorState(
@@ -251,12 +300,9 @@ if user:
                         "requirement": requirement,
                         "guidance_text": final_state["guidance_text"]
                     })
-
                     st.markdown(final_state["guidance_text"], unsafe_allow_html=True)
 
-        # --------------------------------------------------------
-        # 🕒 PREVIOUS ANALYSIS PAGE
-        # --------------------------------------------------------
+        # ---------------- Previous Analysis -----------------
         elif page == "Previous Analysis":
             st.subheader("🕒 Previous Career Guidance Reports")
 
@@ -271,15 +317,14 @@ if user:
 
             if reports:
                 for idx, report in enumerate(reports, start=1):
-                    with st.expander(f"📄 Report {idx}: {report.get('requirement', 'Unknown Interest')} ({report.get('timestamp', 'No date')})"):
+                    with st.expander(
+                        f"📄 Report {idx}: {report.get('requirement', 'Unknown')} ({report.get('timestamp', 'No date')})"
+                    ):
                         st.write(f"👤 **Name:** {report.get('name', 'N/A')}")
                         st.write(f"📍 **State:** {report.get('state', 'N/A')}")
                         st.write(f"✉️ **Email:** {report.get('email', 'N/A')}")
-                        st.markdown("---")
                         st.markdown(report.get("guidance_text", "_No guidance text found._"), unsafe_allow_html=True)
             else:
                 st.info("No previous analyses found.")
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
-
-
