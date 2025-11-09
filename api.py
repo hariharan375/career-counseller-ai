@@ -43,6 +43,7 @@ def career_guidance_node(state: CounsellorState):
     trends = {}
     subjects = list(state["test_scores"][0].keys())
     subjects.remove("class")
+    subjects.remove("date_entered")
 
     def get_trend(scores):
         if len(scores) < 2:
@@ -156,7 +157,8 @@ if user:
                 "name": name,
                 "class": class_studying,
                 "subjects": subjects,
-                "questionnaire_done": False
+                "questionnaire_done": False,
+                "domain": None
             })
             st.success("✅ Profile created! Please refresh to continue.")
             st.stop()
@@ -227,7 +229,7 @@ if user:
                 "28. I would like to work in government administration and contribute to policy-making and governance.",
                 "29. I enjoy reading, writing, and understanding stories, poetry, or different languages.",
                 "30. I am interested in how money, investments, and financial planning work in businesses and daily life.",
-                "31. I am interested in representing my country abroad and working in international relations and diplomacy."
+                "31. I am interested in representing my country abroad and working in international relations and diplomacy."
             ]
 
             responses = {}
@@ -235,11 +237,31 @@ if user:
                 responses[f"Q{i}"] = st.slider(q, 1, 5, 3)
 
             if st.button("✅ Submit Responses"):
+                # Domain mapping
+                domain_map = {
+                    "Engineering & Technology": [1, 3, 8, 11, 22],
+                    "Research & Science": [2, 7, 12, 23, 26],
+                    "Medical & Life Sciences": [4, 9, 13, 21, 24],
+                    "Arts & Design": [5, 10, 14, 20, 29],
+                    "Business & Management": [15, 17, 19, 27, 30],
+                    "Law & Public Services": [6, 16, 25, 28, 31],
+                }
+
+                domain_scores = {}
+                for domain, q_nums in domain_map.items():
+                    domain_scores[domain] = sum(responses[f"Q{i}"] for i in q_nums)
+
+                top_domain = max(domain_scores, key=domain_scores.get)
+
                 db.collection("students").document(uid).collection("questionnaire").add({
                     "responses": responses,
-                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d")
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d"),
+                    "calculated_domain": top_domain
                 })
-                db.collection("students").document(uid).update({"questionnaire_done": True})
+                db.collection("students").document(uid).update({
+                    "questionnaire_done": True,
+                    "domain": top_domain
+                })
                 st.success("🎯 Questionnaire submitted successfully! You can’t edit it later.")
                 st.stop()
 
@@ -328,4 +350,3 @@ if user:
                 st.info("No previous analyses found.")
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
-
