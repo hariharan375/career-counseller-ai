@@ -153,15 +153,18 @@ if user:
 
         if st.button("💾 Save Profile"):
             subjects = [s.strip() for s in subjects_input.split(",") if s.strip()]
-            db.collection("students").document(uid).set({
-                "name": name,
-                "class": class_studying,
-                "subjects": subjects,
-                "questionnaire_done": False,
-                "domain": None
-            })
-            st.success("✅ Profile created! Please refresh to continue.")
-            st.stop()
+            if not name or not class_studying or not subjects:
+                st.warning("⚠️ Please fill all details.")
+            else:
+                db.collection("students").document(uid).set({
+                    "name": name,
+                    "class": class_studying,
+                    "subjects": subjects,
+                    "questionnaire_done": False,
+                    "domain": None
+                })
+                st.success("✅ Profile created successfully! Now complete the questionnaire.")
+        st.stop()
 
     else:
         student_name = profile.get("name", "")
@@ -170,16 +173,19 @@ if user:
         questionnaire_done = profile.get("questionnaire_done", False)
 
         st.sidebar.success(f"Hello, {student_name}! 👋")
-        nav_pages = ["Profile Details", "Counsel", "Previous Analysis"]
+
+        # Navigation
+        nav_pages = ["Profile Details"]
         if not questionnaire_done:
-            nav_pages.insert(1, "Questionnaire")
+            nav_pages.append("Questionnaire")
+        else:
+            nav_pages += ["Counsel", "Previous Analysis"]
 
         page = st.sidebar.radio("📂 Navigate to:", nav_pages)
 
         # ---------------- Profile Page -----------------
         if page == "Profile Details":
             st.subheader("📋 Profile Details")
-
             new_name = st.text_input("Your Name", value=student_name)
             new_class = st.selectbox("Your Class", [str(i) for i in range(8, 13)],
                                      index=int(student_class) - 8)
@@ -191,7 +197,7 @@ if user:
                 db.collection("students").document(uid).update({
                     "name": new_name, "class": new_class, "subjects": updated_subjects
                 })
-                st.success("✅ Profile updated! Refresh to see changes.")
+                st.success("✅ Profile updated successfully!")
 
         # ---------------- Questionnaire Page -----------------
         elif page == "Questionnaire":
@@ -237,7 +243,6 @@ if user:
                 responses[f"Q{i}"] = st.slider(q, 1, 5, 3)
 
             if st.button("✅ Submit Responses"):
-                # Domain mapping
                 domain_map = {
                     "Engineering & Technology": [1, 3, 8, 11, 22],
                     "Research & Science": [2, 7, 12, 23, 26],
@@ -247,10 +252,7 @@ if user:
                     "Law & Public Services": [6, 16, 25, 28, 31],
                 }
 
-                domain_scores = {}
-                for domain, q_nums in domain_map.items():
-                    domain_scores[domain] = sum(responses[f"Q{i}"] for i in q_nums)
-
+                domain_scores = {d: sum(responses[f"Q{i}"] for i in qn) for d, qn in domain_map.items()}
                 top_domain = max(domain_scores, key=domain_scores.get)
 
                 db.collection("students").document(uid).collection("questionnaire").add({
@@ -262,8 +264,12 @@ if user:
                     "questionnaire_done": True,
                     "domain": top_domain
                 })
-                st.success("🎯 Questionnaire submitted successfully! You can’t edit it later.")
-                st.stop()
+                st.success("🎯 Questionnaire submitted successfully! You can now access the full dashboard.")
+                st.experimental_rerun()
+
+        # ---------------- Locked Sections -----------------
+        elif page in ["Counsel", "Previous Analysis"] and not questionnaire_done:
+            st.warning("⚠️ Please complete your profile and questionnaire before accessing this section.")
 
         # ---------------- Counsel Page -----------------
         elif page == "Counsel":
@@ -285,19 +291,13 @@ if user:
 
             if st.button("➕ Add Test"):
                 db.collection("students").document(uid).collection("tests").add(test_data)
-                st.success("✅ Test added successfully! Refresh to view.")
+                st.success("✅ Test added successfully!")
 
             if test_scores:
                 st.subheader("📊 Your Test History")
                 df = pd.DataFrame(test_scores)
-                for col in ["id"]:
-                    if col in df.columns:
-                        df = df.drop(columns=[col])
-
                 columns_order = ["class", "date_entered"] + [sub for sub in subjects if sub in df.columns]
-                other_columns = [c for c in df.columns if c not in columns_order]
-                df = df[columns_order + other_columns]
-
+                df = df[columns_order]
                 st.dataframe(df)
 
                 st.subheader("🚀 Generate AI Career Guidance")
