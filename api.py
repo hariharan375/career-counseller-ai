@@ -171,6 +171,7 @@ if user:
         student_class = profile.get("class", "")
         subjects = profile.get("subjects", [])
         questionnaire_done = profile.get("questionnaire_done", False)
+        saved_domain = profile.get("domain", None)
 
         st.sidebar.success(f"Hello, {student_name}! 👋")
 
@@ -267,10 +268,6 @@ if user:
                 st.success("🎯 Questionnaire submitted successfully! You can now access the full dashboard.")
                 st.experimental_rerun()
 
-        # ---------------- Locked Sections -----------------
-        elif page in ["Counsel", "Previous Analysis"] and not questionnaire_done:
-            st.warning("⚠️ Please complete your profile and questionnaire before accessing this section.")
-
         # ---------------- Counsel Page -----------------
         elif page == "Counsel":
             st.subheader("🧠 Enter Your Test Marks")
@@ -305,6 +302,17 @@ if user:
                 requirement = st.text_input("Career Interest:")
 
                 if st.button("💡 Get Guidance"):
+                    # Retrieve domain from Firebase
+                    actual_domain = saved_domain or "Not Defined"
+
+                    # Check match between domain and entered interest
+                    if requirement.lower() in actual_domain.lower():
+                        mode = "direct"
+                        prompt_style = f"The student's career interest '{requirement}' matches their assessed domain '{actual_domain}'. Give deep career guidance."
+                    else:
+                        mode = "mismatch"
+                        prompt_style = f"The student's current interest is '{requirement}', but their assessed domain from aptitude is '{actual_domain}'. Provide motivation and detailed steps to explore their interest while also showing how their natural domain '{actual_domain}' strengths can complement it."
+
                     input_state = CounsellorState(
                         student_name=student_name,
                         test_scores=test_scores,
@@ -312,7 +320,18 @@ if user:
                         requirement=requirement,
                         guidance_text=""
                     )
-                    final_state = app.invoke(input_state)
+
+                    base_output = app.invoke(input_state)["guidance_text"]
+
+                    # Re-frame the response if mismatch
+                    if mode == "mismatch":
+                        base_output = (
+                            f"### ⚖️ Alignment Advice\n"
+                            f"While your interest in **{requirement}** is inspiring, "
+                            f"your aptitude indicates a strong potential in **{actual_domain}**.\n\n"
+                            f"Here's how you can bridge both paths effectively:\n\n"
+                            f"{base_output}"
+                        )
 
                     db.collection("students").document(uid).collection("guidance_history").add({
                         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d"),
@@ -320,9 +339,11 @@ if user:
                         "email": email,
                         "state": state_name,
                         "requirement": requirement,
-                        "guidance_text": final_state["guidance_text"]
+                        "guidance_text": base_output,
+                        "domain": actual_domain
                     })
-                    st.markdown(final_state["guidance_text"], unsafe_allow_html=True)
+
+                    st.markdown(base_output, unsafe_allow_html=True)
 
         # ---------------- Previous Analysis -----------------
         elif page == "Previous Analysis":
@@ -345,6 +366,7 @@ if user:
                         st.write(f"👤 **Name:** {report.get('name', 'N/A')}")
                         st.write(f"📍 **State:** {report.get('state', 'N/A')}")
                         st.write(f"✉️ **Email:** {report.get('email', 'N/A')}")
+                        st.write(f"🎯 **Assessed Domain:** {report.get('domain', 'N/A')}")
                         st.markdown(report.get("guidance_text", "_No guidance text found._"), unsafe_allow_html=True)
             else:
                 st.info("No previous analyses found.")
