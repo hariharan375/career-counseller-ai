@@ -266,7 +266,7 @@ if user:
                     "domain": top_domain
                 })
                 st.success("🎯 Questionnaire submitted successfully! You can now access the full dashboard.")
-                st.experimental_rerun()
+                st.rerun()
 
         # ---------------- Counsel Page -----------------
         elif page == "Counsel":
@@ -372,3 +372,4 @@ if user:
                 st.info("No previous analyses found.")
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
