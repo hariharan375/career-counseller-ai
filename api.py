@@ -69,8 +69,9 @@ def career_guidance_node(state: CounsellorState):
     Provide:
     1. Personalized career guidance with improvement areas and clear action steps.
     2. Mention each subject's trend and what it means.
-    3. Markdown table of 10 best Bachelor’s colleges (with location, fees, eligibility, and NIRF 2025 rank).
-    4. Markdown table of 5 best Master’s programs (if applicable).
+    3. Markdown table of 10 best Bachelor’s degree colleges nearer to the location given by the user only 
+       (with location, program mentioned, entrance and eligibility, speciality of each college).
+    4. Markdown table of 5 best Master’s programs (if applicable, with the same specifications given for the bachelors table).
     5. End with a motivational summary.
     """
 
@@ -99,7 +100,6 @@ st.title("🎓 AI Enabled Career Assistance")
 # ------------------------------------------------------------
 st.sidebar.title("🔑 User Authentication")
 auth_mode = st.sidebar.radio("Choose Action:", ["Login", "Register"])
-
 email = st.sidebar.text_input("Email")
 password = st.sidebar.text_input("Password", type="password")
 
@@ -135,6 +135,7 @@ if st.session_state.user:
 # 🧠 MAIN APP SECTION
 # ------------------------------------------------------------
 user = st.session_state.user
+
 if user:
     uid = user.uid
 
@@ -164,7 +165,7 @@ if user:
                     "domain": None
                 })
                 st.success("✅ Profile created successfully! Now complete the questionnaire.")
-        st.stop()
+                st.stop()
 
     else:
         student_name = profile.get("name", "")
@@ -184,8 +185,95 @@ if user:
 
         page = st.sidebar.radio("📂 Navigate to:", nav_pages)
 
-        # ---------------- Counsel Page -----------------
-        if page == "Counsel":
+        # ---------------- Profile Page -----------------
+        if page == "Profile Details":
+            st.subheader("📋 Profile Details")
+            new_name = st.text_input("Your Name", value=student_name)
+            new_class = st.selectbox("Your Class", [str(i) for i in range(8, 13)], index=int(student_class) - 8)
+            subjects_str = ", ".join(subjects)
+            new_subjects = st.text_area("Subjects (comma-separated):", value=subjects_str)
+
+            if st.button("💾 Update Profile"):
+                updated_subjects = [s.strip() for s in new_subjects.split(",") if s.strip()]
+                db.collection("students").document(uid).update({
+                    "name": new_name,
+                    "class": new_class,
+                    "subjects": updated_subjects
+                })
+                st.success("✅ Profile updated successfully!")
+
+        # ---------------- Questionnaire Page -----------------
+        elif page == "Questionnaire":
+            st.subheader("🧩 Career Interest Questionnaire")
+            st.info("Please rate each statement from 1 (Strongly Disagree) to 5 (Strongly Agree). You can submit only once.")
+
+            questions = [
+                # (same 31 questions as before)
+                "1. I love understanding how engines, bikes, and machines work and imagining how to make them faster or more efficient.",
+                "2. I am interested in learning how rockets work and how humans explore space and other planets.",
+                "3. The idea of building or programming a robot that can move or think on its own excites me.",
+                "4. I am interested in studying the human body and understanding how diseases are diagnosed and treated.",
+                "5. I am curious to understand how a human mind works and how people react in different situations.",
+                "6. I am curious about maintaining law and order and serving the public as part of the police services.",
+                "7. I like creating visuals, designs, or media that express ideas and information clearly.",
+                "8. I get curious about how gadgets, circuits, and electrical systems power our homes and devices.",
+                "9. I am interested in exploring how natural herbs and traditional healing methods help maintain good health.",
+                "10. I enjoy imagining and designing buildings, spaces, and structures that are both functional and beautiful.",
+                "11. I’m fascinated by how bridges, buildings, or industries are designed to be safe, efficient, and sustainable.",
+                "12. I enjoy solving real-life problems using physics and mathematical concepts.",
+                "13. I am curious about how medicines work in the body and how physical therapy helps in recovery.",
+                "14. I am interested in designing clothes, following fashion trends, and creating my own style ideas.",
+                "15. I am interested in understanding trade, business transactions, and how markets operate.",
+                "16. I am interested in learning about laws, legal systems, and how justice is delivered.",
+                "17. I enjoy learning how hotels, restaurants, and tourism services are managed to provide great experiences.",
+                "18. I would like to pursue my favorite sport as a professional career.",
+                "19. I like learning about managing organizations, planning work, and improving business operations.",
+                "20. I like learning about society, cultures, and how communities interact and develop.",
+                "21. I would like to learn how to care for teeth, gums, and overall oral health.",
+                "22. I enjoy solving problems using computers and want to learn how apps, games, or AI tools are created.",
+                "23. I am curious about how living organisms can be used to develop medicines, improve crops, or solve health problems.",
+                "24. I want to learn how to treat and take care of animals and understand their health conditions.",
+                "25. I would like to join NDA to receive joint training for the army, navy, or air force to defend the country.",
+                "26. I want to understand how science and technology help in improving farming and food production.",
+                "27. I am curious about accounting, auditing, and how financial decisions are made in companies.",
+                "28. I would like to work in government administration and contribute to policy-making and governance.",
+                "29. I enjoy reading, writing, and understanding stories, poetry, or different languages.",
+                "30. I am interested in how money, investments, and financial planning work in businesses and daily life.",
+                "31. I am interested in representing my country abroad and working in international relations and diplomacy."
+            ]
+
+            responses = {}
+            for i, q in enumerate(questions, 1):
+                responses[f"Q{i}"] = st.slider(q, 1, 5, 3)
+
+            if st.button("✅ Submit Responses"):
+                domain_map = {
+                    "Engineering & Technology": [1, 3, 8, 11, 22],
+                    "Research & Science": [2, 7, 12, 23, 26],
+                    "Medical & Life Sciences": [4, 9, 13, 21, 24],
+                    "Arts & Design": [5, 10, 14, 20, 29],
+                    "Business & Management": [15, 17, 19, 27, 30],
+                    "Law & Public Services": [6, 16, 25, 28, 31],
+                }
+
+                domain_scores = {d: sum(responses[f"Q{i}"] for i in qn) for d, qn in domain_map.items()}
+                top_domain = max(domain_scores, key=domain_scores.get)
+
+                db.collection("students").document(uid).collection("questionnaire").add({
+                    "responses": responses,
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d"),
+                    "calculated_domain": top_domain
+                })
+
+                db.collection("students").document(uid).update({
+                    "questionnaire_done": True,
+                    "domain": top_domain
+                })
+
+                st.success("🎯 Questionnaire submitted successfully! You can now access the full dashboard.")
+                st.rerun()
+                        # ---------------- Counsel Page with Dynamic Questions -----------------
+        elif page == "Counsel":
             st.subheader("🧠 Enter Your Test Marks")
 
             test_scores = []
@@ -199,6 +287,7 @@ if user:
                 "class": student_class,
                 "date_entered": datetime.datetime.now().strftime("%Y-%m-%d")
             }
+
             for sub in subjects:
                 test_data[sub] = st.number_input(f"{sub} Marks", 0, 100, 0)
 
@@ -213,65 +302,91 @@ if user:
                 df = df[columns_order]
                 st.dataframe(df)
 
-                st.subheader("🚀 Generate AI Career Guidance")
-                state_name = st.text_input("Your State:")
-                requirement = st.text_input("Career Interest:")
+            st.subheader("🚀 Career Guidance Assistant")
+            state_name = st.text_input("Your State:")
+            requirement = st.text_input("Career Interest (e.g., Doctor, Engineer, Designer):")
 
-                if st.button("💡 Get Guidance"):
+            if requirement:
+                st.info(f"Let's understand your interest in **{requirement}** better.")
+
+                followup_qs = {
+                    "engineer": [
+                        "Which engineering fields interest you most (Mechanical, Computer, Electrical, etc.)?",
+                        "Do you enjoy practical problem-solving or software-based creativity?",
+                        "What kind of projects or innovations inspire you?"
+                    ],
+                    "doctor": [
+                        "What made you interested in becoming a doctor?",
+                        "Are you more inclined towards research, patient care, or surgery?",
+                        "Which subjects fascinate you most — biology, chemistry, or something else?"
+                    ],
+                    "designer": [
+                        "What type of design excites you most (fashion, architecture, graphics)?",
+                        "Do you prefer visual creativity or structural design?",
+                        "What do you want your designs to express or impact?"
+                    ],
+                    "lawyer": [
+                        "What part of law fascinates you — justice, debate, or policymaking?",
+                        "Would you prefer working in civil, criminal, or corporate law?",
+                        "How do you view fairness and justice in society?"
+                    ],
+                    "scientist": [
+                        "Which area of science do you like most — physics, biology, or chemistry?",
+                        "Do you enjoy experimentation or theoretical research?",
+                        "Would you like to work in labs, universities, or industries?"
+                    ],
+                }
+
+                key = next((k for k in followup_qs.keys() if k in requirement.lower()), None)
+                if key:
+                    qs = followup_qs[key]
+                else:
+                    qs = [
+                        "What draws you toward this field?",
+                        "What kind of daily work or challenges excite you in this area?",
+                        "Where do you see yourself applying these skills in the future?"
+                    ]
+
+                answers = []
+                for q in qs:
+                    answers.append(st.text_area(q))
+
+                if all(answers) and st.button("💡 Generate Career Guidance"):
+                    narrow_prompt = f"""
+                    The student {student_name} expressed interest in {requirement} and answered:
+                    {dict(zip(qs, answers))}.
+                    Based on these, identify their most fitting specialization or sub-field.
+                    Provide a short reasoning in 2 lines.
+                    """
+
+                    subresp = client.chat.completions.create(
+                        model="llama-3.1-8b-instant",
+                        messages=[{"role": "user", "content": narrow_prompt}],
+                    )
+                    specialization = subresp.choices[0].message.content.strip()
+
                     actual_domain = saved_domain or "Not Defined"
+                    matched = requirement.lower() in actual_domain.lower()
+                    mode = "direct" if matched else "mismatch"
 
-                    # ---------- MATCH CASE ----------
-                    if requirement.lower() in actual_domain.lower():
-                        mode = "direct"
-                        prompt_style = f"The student's career interest '{requirement}' matches their assessed domain '{actual_domain}'. Give deep career guidance."
+                    input_state = CounsellorState(
+                        student_name=student_name,
+                        test_scores=test_scores,
+                        state=state_name,
+                        requirement=f"{requirement} - {specialization}",
+                        guidance_text=""
+                    )
 
-                        input_state = CounsellorState(
-                            student_name=student_name,
-                            test_scores=test_scores,
-                            state=state_name,
-                            requirement=requirement,
-                            guidance_text=""
+                    base_output = app.invoke(input_state)["guidance_text"]
+
+                    if mode == "mismatch":
+                        base_output = (
+                            f"### ⚖️ Alignment Advice\n"
+                            f"Your passion for **{requirement}** (specialized in *{specialization}*) is great, "
+                            f"but your aptitude test indicated strength in **{actual_domain}**.\n\n"
+                            f"Here's how you can align both fields effectively:\n\n"
+                            f"{base_output}"
                         )
-                        base_output = app.invoke(input_state)["guidance_text"]
-
-                    # ---------- MISMATCH CASE 🔧 (UPDATED) ----------
-                    else:
-                        mode = "mismatch"
-                        # Generate guidance for both interest and aptitude
-                        input_interest = CounsellorState(
-                            student_name=student_name,
-                            test_scores=test_scores,
-                            state=state_name,
-                            requirement=requirement,
-                            guidance_text=""
-                        )
-                        guidance_interest = app.invoke(input_interest)["guidance_text"]
-
-                        input_aptitude = CounsellorState(
-                            student_name=student_name,
-                            test_scores=test_scores,
-                            state=state_name,
-                            requirement=actual_domain,
-                            guidance_text=""
-                        )
-                        guidance_aptitude = app.invoke(input_aptitude)["guidance_text"]
-
-                        base_output = f"""
-                        ### ⚖️ Alignment Advice
-                        While your interest in **{requirement}** is inspiring, your aptitude indicates a strong potential in **{actual_domain}**.
-                        
-                        ---
-                        ## 🌟 Career Path 1: Your Interest — *{requirement}*
-                        {guidance_interest}
-
-                        ---
-                        ## 💪 Career Path 2: Your Natural Strength — *{actual_domain}*
-                        {guidance_aptitude}
-
-                        ---
-                        ### 💡 Final Recommendation
-                        Combine both paths strategically by focusing on foundational skills from **{actual_domain}** while pursuing your passion for **{requirement}**. This will help you build a future that aligns with both your heart and your mind.
-                        """
 
                     db.collection("students").document(uid).collection("guidance_history").add({
                         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d"),
@@ -279,6 +394,7 @@ if user:
                         "email": email,
                         "state": state_name,
                         "requirement": requirement,
+                        "specialization": specialization,
                         "guidance_text": base_output,
                         "domain": actual_domain
                     })
@@ -288,7 +404,6 @@ if user:
         # ---------------- Previous Analysis -----------------
         elif page == "Previous Analysis":
             st.subheader("🕒 Previous Career Guidance Reports")
-
             reports_ref = (
                 db.collection("students")
                 .document(uid)
@@ -307,8 +422,14 @@ if user:
                         st.write(f"📍 **State:** {report.get('state', 'N/A')}")
                         st.write(f"✉️ **Email:** {report.get('email', 'N/A')}")
                         st.write(f"🎯 **Assessed Domain:** {report.get('domain', 'N/A')}")
-                        st.markdown(report.get("guidance_text", "_No guidance text found._"), unsafe_allow_html=True)
+                        st.write(f"🎓 **Specialization:** {report.get('specialization', 'N/A')}")
+                        st.markdown(
+                            report.get("guidance_text", "_No guidance text found._"),
+                            unsafe_allow_html=True
+                        )
             else:
                 st.info("No previous analyses found.")
+
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
