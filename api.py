@@ -346,8 +346,8 @@ if user:
                         answers.append(st.text_area(q))
 
                     if all(answers) and st.button("💡 Generate Career Guidance"):
-                        narrow_prompt = 
-                        """The student {student_name} expressed interest in "{requirement}" and answered:
+                        narrow_prompt = f"""
+                        The student {student_name} expressed interest in {requirement} and answered:
                         {dict(zip(qs, answers))}.
                         Based on these, identify their most fitting specialization or sub-field.
                         Provide a short reasoning in 2 lines."""
@@ -423,3 +423,4 @@ if user:
                 st.info("No previous analyses found.")
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
