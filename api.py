@@ -99,8 +99,6 @@ st.title("🎓 AI Enabled Career Assistance")
 # 🔐 SIDEBAR: Authentication
 # ------------------------------------------------------------
 
-# Add session variables to track inputs
-# Sidebar: Authentication
 if "email" not in st.session_state:
     st.session_state.email = ""
 if "password" not in st.session_state:
@@ -111,8 +109,9 @@ if "user" not in st.session_state:
 st.sidebar.title("🔑 User Authentication")
 auth_mode = st.sidebar.radio("Choose Action:", ["Login", "Register"])
 
-email = st.sidebar.text_input("Email", value=st.session_state.email, key="email_input")
-password = st.sidebar.text_input("Password", type="password", value=st.session_state.password, key="pwd_input")
+# Widgets bind to backend values, which you clear later
+email = st.sidebar.text_input("Email", value=st.session_state.email, key="email")
+password = st.sidebar.text_input("Password", type="password", value=st.session_state.password, key="password")
 
 # Register
 if auth_mode == "Register" and st.sidebar.button("Create Account"):
@@ -143,7 +142,7 @@ if st.session_state.user:
         st.session_state.user = None
         st.session_state.clear()
         st.success("✅ Logged out successfully.")
-        st.stop()
+        st.rerun()
 
 # ------------------------------------------------------------
 # 🧠 MAIN APP SECTION
@@ -222,7 +221,6 @@ if user:
             st.info("Please rate each statement from 1 (Strongly Disagree) to 5 (Strongly Agree). You can submit only once.")
 
             questions = [
-                # (same 31 questions as before)
                 "1. I love understanding how engines, bikes, and machines work and imagining how to make them faster or more efficient.",
                 "2. I am interested in learning how rockets work and how humans explore space and other planets.",
                 "3. The idea of building or programming a robot that can move or think on its own excites me.",
@@ -370,7 +368,7 @@ if user:
                     The student {student_name} expressed interest in {requirement} and answered:
                     {dict(zip(qs, answers))}.
                     Based on these, identify their most fitting specialization or sub-field.
-                    Provide a short reasoning in 2 lines.
+                    Provide a proper reasoning.
                     """
 
                     subresp = client.chat.completions.create(
@@ -446,5 +444,3 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
-
-
