@@ -100,6 +100,7 @@ st.title("🎓 AI Enabled Career Assistance")
 # ------------------------------------------------------------
 
 # Add session variables to track inputs
+# Sidebar: Authentication
 if "email" not in st.session_state:
     st.session_state.email = ""
 if "password" not in st.session_state:
@@ -109,6 +110,7 @@ if "user" not in st.session_state:
 
 st.sidebar.title("🔑 User Authentication")
 auth_mode = st.sidebar.radio("Choose Action:", ["Login", "Register"])
+
 email = st.sidebar.text_input("Email", value=st.session_state.email, key="email_input")
 password = st.sidebar.text_input("Password", type="password", value=st.session_state.password, key="pwd_input")
 
@@ -117,11 +119,9 @@ if auth_mode == "Register" and st.sidebar.button("Create Account"):
     try:
         user = auth.create_user(email=email, password=password)
         st.sidebar.success("✅ Account created! Please login.")
-        # Clear the email and password fields after registration
         st.session_state.email = ""
         st.session_state.password = ""
-        st.session_state["email_input"] = ""
-        st.session_state["pwd_input"] = ""
+        st.experimental_rerun()
     except Exception as e:
         st.sidebar.error(f"⚠️ Error: {e}")
 
@@ -131,11 +131,9 @@ if auth_mode == "Login" and st.sidebar.button("Login"):
         user = auth.get_user_by_email(email)
         st.session_state.user = user
         st.sidebar.success(f"✅ Welcome {email}")
-        # Clear the email and password fields after login
         st.session_state.email = ""
         st.session_state.password = ""
-        st.session_state["email_input"] = ""
-        st.session_state["pwd_input"] = ""
+        st.experimental_rerun()
     except Exception as e:
         st.sidebar.error(f"⚠️ Login failed: {e}")
 
@@ -448,3 +446,4 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
