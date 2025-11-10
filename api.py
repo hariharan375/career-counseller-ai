@@ -65,7 +65,8 @@ def career_guidance_node(state: CounsellorState):
     3. Markdown table of 10 best Bachelor’s degree and the college the student can take based on their career interest nearer to the location given by the user only 
        (with location, program mentioned and course specialization(check whether the course is offered by that college and display), entrance and eligibility, students placed percentage).
     4. Markdown table of 5 best Master’s programs based on their career interest (if applicable, with the same specifications given for the bachelors table).
-    5. End with a motivational summary.
+    5. Give some possible job roles one can except after completion of the particular guided path above with some explanation of the job role.
+    6. End with a motivational summary.
     """
 
     response = client.chat.completions.create(
@@ -374,7 +375,8 @@ if user:
                         3. Markdown table of 10 best Bachelor’s degree and the college the student can take based on their career interest nearer to the location given by the user only 
                            (with location, program mentioned and course specialization(check whether the course is offered by that college and display), entrance and eligibility, students placed percentage).
                         4. Markdown table of 5 best Master’s programs based on their career interest (if applicable, with the same specifications given for the bachelors table).
-                        5. End with a motivational summary.
+                        5. Give some possible job roles one can except after completion of the particular guided path above with some explanation of the job role.
+                        6. End with a motivational summary.
                         """
                         aptitude_response = client.chat.completions.create(
                             model="llama-3.1-8b-instant",
@@ -428,3 +430,4 @@ if user:
                 st.info("No previous analyses found.")
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
