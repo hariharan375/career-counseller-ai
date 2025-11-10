@@ -288,6 +288,7 @@ if user:
         # ---------------- Counsel Page with Dynamic Questions -----------------
         elif page == "Counsel":
             st.subheader("🧠 Enter Your Test Marks")
+            st.info("Please enter your marks from the oldest test you attended (first) to the most recent (last). This ensures accurate trend calculation of your scores.")
             test_scores = []
             tests_ref = db.collection("students").document(uid).collection("tests").stream()
             for doc in tests_ref:
@@ -447,6 +448,7 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
 
 
 
