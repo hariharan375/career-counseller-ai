@@ -121,7 +121,7 @@ if auth_mode == "Register" and st.sidebar.button("Create Account"):
         st.sidebar.success("✅ Account created! Please login.")
         st.session_state.email = ""
         st.session_state.password = ""
-        st.experimental_rerun()
+        st.rerun()
     except Exception as e:
         st.sidebar.error(f"⚠️ Error: {e}")
 
@@ -133,7 +133,7 @@ if auth_mode == "Login" and st.sidebar.button("Login"):
         st.sidebar.success(f"✅ Welcome {email}")
         st.session_state.email = ""
         st.session_state.password = ""
-        st.experimental_rerun()
+        st.rerun()
     except Exception as e:
         st.sidebar.error(f"⚠️ Login failed: {e}")
 
@@ -446,4 +446,5 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
 
