@@ -99,27 +99,29 @@ st.title("🎓 AI Enabled Career Assistance")
 # 🔐 SIDEBAR: Authentication
 # ------------------------------------------------------------
 
-if "email" not in st.session_state:
-    st.session_state.email = ""
-if "password" not in st.session_state:
-    st.session_state.password = ""
+if "clear_fields" not in st.session_state:
+    st.session_state.clear_fields = False
 if "user" not in st.session_state:
     st.session_state.user = None
 
 st.sidebar.title("🔑 User Authentication")
 auth_mode = st.sidebar.radio("Choose Action:", ["Login", "Register"])
 
-# Widgets bind to backend values, which you clear later
-email = st.sidebar.text_input("Email", value=st.session_state.email, key="email")
-password = st.sidebar.text_input("Password", type="password", value=st.session_state.password, key="password")
+# If trigger set, set widget values to blank then unset the trigger (just once per rerun!)
+if st.session_state.clear_fields:
+    st.session_state.email_input = ""
+    st.session_state.password_input = ""
+    st.session_state.clear_fields = False
+
+email = st.sidebar.text_input("Email", key="email_input")
+password = st.sidebar.text_input("Password", type="password", key="password_input")
 
 # Register
 if auth_mode == "Register" and st.sidebar.button("Create Account"):
     try:
         user = auth.create_user(email=email, password=password)
         st.sidebar.success("✅ Account created! Please login.")
-        st.session_state.email = ""
-        st.session_state.password = ""
+        st.session_state.clear_fields = True
         st.rerun()
     except Exception as e:
         st.sidebar.error(f"⚠️ Error: {e}")
@@ -130,11 +132,18 @@ if auth_mode == "Login" and st.sidebar.button("Login"):
         user = auth.get_user_by_email(email)
         st.session_state.user = user
         st.sidebar.success(f"✅ Welcome {email}")
-        st.session_state.email = ""
-        st.session_state.password = ""
+        st.session_state.clear_fields = True
         st.rerun()
     except Exception as e:
         st.sidebar.error(f"⚠️ Login failed: {e}")
+
+if st.session_state.user:
+    if st.sidebar.button("🚪 Logout"):
+        st.session_state.user = None
+        st.session_state.clear()
+        st.success("✅ Logged out successfully.")
+        st.rerun()
+
 
 # Logout
 if st.session_state.user:
@@ -444,3 +453,4 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
