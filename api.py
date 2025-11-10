@@ -234,9 +234,10 @@ if user:
             for doc in tests_ref:
                 test_scores.append(doc.to_dict())
             # Sort test_scores oldest to newest
-            if test_scores and "date_entered" in test_scores[0]:
-                test_scores = sorted(test_scores, key=lambda x: x["date_entered"])
-
+            # Filter to only valid test records with a date
+            test_scores = [t for t in test_scores if "date_entered" in t]
+            if test_scores:
+                test_scores = sorted(test_scores, key=lambda x: x["date_entered"])    
             st.write(f"Currently tracking subjects: {', '.join(subjects)}")
             test_data = {
                 "class": student_class,
@@ -433,3 +434,4 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
