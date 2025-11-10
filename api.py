@@ -310,6 +310,12 @@ if user:
                 columns_order = [col for col in columns_order if col in df.columns]
                 df = df[columns_order]
                 st.dataframe(df)
+                # ----------- Line Graphs for Each Subject's Scores -----------
+                st.subheader("📈 Test Score Trends for Each Subject")
+                for sub in subjects:
+                    if sub in df.columns:
+                        st.write(f"#### {sub} Trend")
+                        st.line_chart(df.set_index("date_entered")[sub], height=200)
             st.subheader("🚀 Career Guidance Assistant")
             state_name = st.text_input("Your State:", key="state_input")
             requirement = st.text_input("Career Interest (e.g., Doctor, Engineer, Designer):", key="requirement_input")
@@ -448,8 +454,3 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
-
-
-
-
-
