@@ -137,13 +137,6 @@ if auth_mode == "Login" and st.sidebar.button("Login"):
     except Exception as e:
         st.sidebar.error(f"⚠️ Login failed: {e}")
 
-if st.session_state.user:
-    if st.sidebar.button("🚪 Logout"):
-        st.session_state.user = None
-        st.session_state.clear()
-        st.success("✅ Logged out successfully.")
-        st.rerun()
-
 
 # Logout
 if st.session_state.user:
@@ -453,4 +446,5 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
 
