@@ -196,7 +196,6 @@ if user:
             st.info("Please rate each statement from 1 (Strongly Disagree) to 5 (Strongly Agree). You can submit only once.")
             questions = [
                 # ... (same as before, omitted for brevity) ...
-                # Use your previous question list for this part.
             ]
             responses = {}
             for i, q in enumerate(questions, 1):
@@ -233,8 +232,7 @@ if user:
             tests_ref = db.collection("students").document(uid).collection("tests").stream()
             for doc in tests_ref:
                 test_scores.append(doc.to_dict())
-            # Sort test_scores oldest to newest
-            # Filter to only valid test records with a date
+            # Only keep records with date, and sort oldest to newest (newest always last!)
             test_scores = [t for t in test_scores if "date_entered" in t]
             if test_scores:
                 test_scores = sorted(test_scores, key=lambda x: x["date_entered"])    
@@ -255,7 +253,7 @@ if user:
                 columns_order = [col for col in columns_order if col in df.columns]
                 df = df[columns_order]
                 st.dataframe(df)
-                # ----------- Line Graphs for Each Subject's Scores -----------
+                # ----------- Line Graphs for Each Subject's Scores ----------
                 st.subheader("📈 Test Score Trends for Each Subject")
                 for sub in subjects:
                     if sub in df.columns:
@@ -365,7 +363,6 @@ if user:
                     )
                     base_output = app.invoke(input_state)["guidance_text"]
                     aptitude_output = ""
-                    # If mismatch, also generate for aptitude domain (except test scores)
                     if mode == "mismatch":
                         aptitude_prompt = f"""
                         The student named {student_name} has these academic details:
@@ -400,8 +397,6 @@ if user:
                     if aptitude_output:
                         st.markdown("### 🧠 Aptitude-based Guidance")
                         st.markdown(aptitude_output, unsafe_allow_html=True)
-
-        # ---------- Previous Analysis ----------
         elif page == "Previous Analysis":
             st.subheader("🕒 Previous Career Guidance Reports")
             reports_ref = (
@@ -431,7 +426,5 @@ if user:
                             st.markdown(report.get("aptitude_guidance_text"), unsafe_allow_html=True)
             else:
                 st.info("No previous analyses found.")
-
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
-
