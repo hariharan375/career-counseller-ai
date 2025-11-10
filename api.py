@@ -315,7 +315,11 @@ if user:
                 for sub in subjects:
                     if sub in df.columns:
                         st.write(f"#### {sub} Trend")
-                        st.line_chart(df.set_index("date_entered")[sub], height=200)
+                        if "date_entered" in df.columns:
+                            chart_data = df.set_index("date_entered")[sub]
+                        else:
+                            chart_data = df[sub]
+                        st.line_chart(chart_data, height=200)
             st.subheader("🚀 Career Guidance Assistant")
             state_name = st.text_input("Your State:", key="state_input")
             requirement = st.text_input("Career Interest (e.g., Doctor, Engineer, Designer):", key="requirement_input")
@@ -454,3 +458,4 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
