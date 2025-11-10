@@ -288,133 +288,133 @@ if user:
                 st.rerun()
         # ---------------- Counsel Page with Dynamic Questions -----------------
         elif page == "Counsel":
-    st.subheader("🧠 Enter Your Test Marks")
-    test_scores = []
-    tests_ref = db.collection("students").document(uid).collection("tests").stream()
-    for doc in tests_ref:
-        test_scores.append(doc.to_dict())
-    st.write(f"Currently tracking subjects: {', '.join(subjects)}")
-    test_data = {
-        "class": student_class,
-        "date_entered": datetime.datetime.now().strftime("%Y-%m-%d")
-    }
-    for sub in subjects:
-        test_data[sub] = st.number_input(f"{sub} Marks", 0, 100, 0, key=f"{sub}_marks")
-    if st.button("➕ Add Test", key="add_test_btn"):
-        db.collection("students").document(uid).collection("tests").add(test_data)
-        st.success("✅ Test added successfully!")
-    if test_scores:
-        st.subheader("📊 Your Test History")
-        df = pd.DataFrame(test_scores)
-        columns_order = ["class", "date_entered"] + [sub for sub in subjects if sub in df.columns]
-        df = df[columns_order]
-        st.dataframe(df)
-    st.subheader("🚀 Career Guidance Assistant")
-    state_name = st.text_input("Your State:", key="state_input")
-    requirement = st.text_input("Career Interest (e.g., Doctor, Engineer, Designer):", key="requirement_input")
-    if requirement:
-        st.info(f"Let's understand your interest in **{requirement}** better.")
-        followup_qs = {
-            "engineer": [
-                "Which engineering fields interest you most (Mechanical, Computer, Electrical, etc.)?",
-                "Do you enjoy practical problem-solving or software-based creativity?",
-                "What kind of projects or innovations inspire you?"
-            ],
-            "doctor": [
-                "What made you interested in becoming a doctor?",
-                "Are you more inclined towards research, patient care, or surgery?",
-                "Which subjects fascinate you most — biology, chemistry, or something else?"
-            ],
-            "designer": [
-                "What type of design excites you most (fashion, architecture, graphics)?",
-                "Do you prefer visual creativity or structural design?",
-                "What do you want your designs to express or impact?"
-            ],
-            "lawyer": [
-                "What part of law fascinates you — justice, debate, or policymaking?",
-                "Would you prefer working in civil, criminal, or corporate law?",
-                "How do you view fairness and justice in society?"
-            ],
-            "scientist": [
-                "Which area of science do you like most — physics, biology, or chemistry?",
-                "Do you enjoy experimentation or theoretical research?",
-                "Would you like to work in labs, universities, or industries?"
-            ],
+        st.subheader("🧠 Enter Your Test Marks")
+        test_scores = []
+        tests_ref = db.collection("students").document(uid).collection("tests").stream()
+        for doc in tests_ref:
+            test_scores.append(doc.to_dict())
+        st.write(f"Currently tracking subjects: {', '.join(subjects)}")
+        test_data = {
+            "class": student_class,
+            "date_entered": datetime.datetime.now().strftime("%Y-%m-%d")
         }
-        key = next((k for k in followup_qs.keys() if k in requirement.lower()), None)
-        if key:
-            qs = followup_qs[key]
-        else:
-            qs = [
-                "What draws you toward this field?",
-                "What kind of daily work or challenges excite you in this area?",
-                "Where do you see yourself applying these skills in the future?"
-            ]
-        answers = []
-        for q in qs:
-            answers.append(st.text_area(q, key=f"info_{q}"))
-        if all(answers) and st.button("💡 Generate Career Guidance", key="career_guidance_btn"):
-            narrow_prompt = f"""
-            The student {student_name} expressed interest in {requirement} and answered:
-            {dict(zip(qs, answers))}.
-            Based on these, identify their most fitting specialization or sub-field.
-            Provide a short reasoning in 2 lines.
-            """
-            subresp = client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[{"role": "user", "content": narrow_prompt}],
-            )
-            specialization = subresp.choices[0].message.content.strip()
-            actual_domain = saved_domain or "Not Defined"
-            matched = requirement.lower() in actual_domain.lower()
-            mode = "direct" if matched else "mismatch"
-            input_state = CounsellorState(
-                student_name=student_name,
-                test_scores=test_scores,
-                state=state_name,
-                requirement=f"{requirement} - {specialization}",
-                guidance_text=""
-            )
-            base_output = app.invoke(input_state)["guidance_text"]
-            aptitude_output = ""
-            # ADDITION: If mismatch, also generate for aptitude domain (except test scores)
-            if mode == "mismatch":
-                aptitude_prompt = f"""
-                The student named {student_name} has these academic details:
-                - Aptitude-assessed Domain: {actual_domain}
-                - State: {state_name}
-                Provide:
-                1. Career guidance for the aptitude-assessed domain with improvement areas and clear action steps.
-                2. Trends and meaning for typical subjects in this domain.
-                3. Markdown table of 10 best Bachelor’s degree colleges nearer to the location given by the user only 
-                   (with location, program mentioned, entrance and eligibility, speciality of each college).
-                4. Markdown table of 5 best Master’s programs (if applicable, with the same specifications given for the bachelors table).
-                5. End with a motivational summary.
+        for sub in subjects:
+            test_data[sub] = st.number_input(f"{sub} Marks", 0, 100, 0, key=f"{sub}_marks")
+        if st.button("➕ Add Test", key="add_test_btn"):
+            db.collection("students").document(uid).collection("tests").add(test_data)
+            st.success("✅ Test added successfully!")
+        if test_scores:
+            st.subheader("📊 Your Test History")
+            df = pd.DataFrame(test_scores)
+            columns_order = ["class", "date_entered"] + [sub for sub in subjects if sub in df.columns]
+            df = df[columns_order]
+            st.dataframe(df)
+        st.subheader("🚀 Career Guidance Assistant")
+        state_name = st.text_input("Your State:", key="state_input")
+        requirement = st.text_input("Career Interest (e.g., Doctor, Engineer, Designer):", key="requirement_input")
+        if requirement:
+            st.info(f"Let's understand your interest in **{requirement}** better.")
+            followup_qs = {
+                "engineer": [
+                    "Which engineering fields interest you most (Mechanical, Computer, Electrical, etc.)?",
+                    "Do you enjoy practical problem-solving or software-based creativity?",
+                    "What kind of projects or innovations inspire you?"
+                ],
+                "doctor": [
+                    "What made you interested in becoming a doctor?",
+                    "Are you more inclined towards research, patient care, or surgery?",
+                    "Which subjects fascinate you most — biology, chemistry, or something else?"
+                ],
+                "designer": [
+                    "What type of design excites you most (fashion, architecture, graphics)?",
+                    "Do you prefer visual creativity or structural design?",
+                    "What do you want your designs to express or impact?"
+                ],
+                "lawyer": [
+                    "What part of law fascinates you — justice, debate, or policymaking?",
+                    "Would you prefer working in civil, criminal, or corporate law?",
+                    "How do you view fairness and justice in society?"
+                ],
+                "scientist": [
+                    "Which area of science do you like most — physics, biology, or chemistry?",
+                    "Do you enjoy experimentation or theoretical research?",
+                    "Would you like to work in labs, universities, or industries?"
+                ],
+            }
+            key = next((k for k in followup_qs.keys() if k in requirement.lower()), None)
+            if key:
+                qs = followup_qs[key]
+            else:
+                qs = [
+                    "What draws you toward this field?",
+                    "What kind of daily work or challenges excite you in this area?",
+                    "Where do you see yourself applying these skills in the future?"
+                ]
+            answers = []
+            for q in qs:
+                answers.append(st.text_area(q, key=f"info_{q}"))
+            if all(answers) and st.button("💡 Generate Career Guidance", key="career_guidance_btn"):
+                narrow_prompt = f"""
+                The student {student_name} expressed interest in {requirement} and answered:
+                {dict(zip(qs, answers))}.
+                Based on these, identify their most fitting specialization or sub-field.
+                Provide a short reasoning in 2 lines.
                 """
-                aptitude_response = client.chat.completions.create(
+                subresp = client.chat.completions.create(
                     model="llama-3.1-8b-instant",
-                    messages=[{"role": "user", "content": aptitude_prompt}],
+                    messages=[{"role": "user", "content": narrow_prompt}],
                 )
-                aptitude_output = aptitude_response.choices[0].message.content.strip()
-            # store both for future viewing too!
-            db.collection("students").document(uid).collection("guidance_history").add({
-                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d"),
-                "name": student_name,
-                "email": email,
-                "state": state_name,
-                "requirement": requirement,
-                "specialization": specialization,
-                "guidance_text": base_output,
-                "domain": actual_domain,
-                "aptitude_guidance_text": aptitude_output
-            })
-            # Existing output (interest domain)
-            st.markdown("### 🎯 Career Interest Guidance")
-            st.markdown(base_output, unsafe_allow_html=True)
-            # Added output (aptitude domain, if mismatch)
-            if aptitude_output:
-                st.markdown("### 🧠 Aptitude-based Guidance")
-                st.markdown(aptitude_output, unsafe_allow_html=True)
+                specialization = subresp.choices[0].message.content.strip()
+                actual_domain = saved_domain or "Not Defined"
+                matched = requirement.lower() in actual_domain.lower()
+                mode = "direct" if matched else "mismatch"
+                input_state = CounsellorState(
+                    student_name=student_name,
+                    test_scores=test_scores,
+                    state=state_name,
+                    requirement=f"{requirement} - {specialization}",
+                    guidance_text=""
+                )
+                base_output = app.invoke(input_state)["guidance_text"]
+                aptitude_output = ""
+                # ADDITION: If mismatch, also generate for aptitude domain (except test scores)
+                if mode == "mismatch":
+                    aptitude_prompt = f"""
+                    The student named {student_name} has these academic details:
+                    - Aptitude-assessed Domain: {actual_domain}
+                    - State: {state_name}
+                    Provide:
+                    1. Career guidance for the aptitude-assessed domain with improvement areas and clear action steps.
+                    2. Trends and meaning for typical subjects in this domain.
+                    3. Markdown table of 10 best Bachelor’s degree colleges nearer to the location given by the user only 
+                       (with location, program mentioned, entrance and eligibility, speciality of each college).
+                    4. Markdown table of 5 best Master’s programs (if applicable, with the same specifications given for the bachelors table).
+                    5. End with a motivational summary.
+                    """
+                    aptitude_response = client.chat.completions.create(
+                        model="llama-3.1-8b-instant",
+                        messages=[{"role": "user", "content": aptitude_prompt}],
+                    )
+                    aptitude_output = aptitude_response.choices[0].message.content.strip()
+                # store both for future viewing too!
+                db.collection("students").document(uid).collection("guidance_history").add({
+                    "timestamp": datetime.datetime.now().strftime("%Y-%m-%d"),
+                    "name": student_name,
+                    "email": email,
+                    "state": state_name,
+                    "requirement": requirement,
+                    "specialization": specialization,
+                    "guidance_text": base_output,
+                    "domain": actual_domain,
+                    "aptitude_guidance_text": aptitude_output
+                })
+                # Existing output (interest domain)
+                st.markdown("### 🎯 Career Interest Guidance")
+                st.markdown(base_output, unsafe_allow_html=True)
+                # Added output (aptitude domain, if mismatch)
+                if aptitude_output:
+                    st.markdown("### 🧠 Aptitude-based Guidance")
+                    st.markdown(aptitude_output, unsafe_allow_html=True)
 
         # ---------------- Previous Analysis -----------------
         elif page == "Previous Analysis":
@@ -447,6 +447,7 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
 
 
 
