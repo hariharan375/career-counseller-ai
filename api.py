@@ -71,9 +71,9 @@ def career_guidance_node(state: CounsellorState):
     Provide:
     1. Personalized career guidance with improvement areas and clear action steps.
     2. Mention each subject's trend and what it means.
-    3. Markdown table of 10 best Bachelor’s degree colleges nearer to the location given by the user only 
+    3. Markdown table of 10 best Bachelor’s degree colleges based on their career interest nearer to the location given by the user only 
        (with location, program mentioned, entrance and eligibility, speciality of each college).
-    4. Markdown table of 5 best Master’s programs (if applicable, with the same specifications given for the bachelors table).
+    4. Markdown table of 5 best Master’s programs based on their career interest (if applicable, with the same specifications given for the bachelors table).
     5. End with a motivational summary.
     """
 
@@ -386,9 +386,9 @@ if user:
                         Provide:
                         1. Career guidance for the aptitude-assessed domain with improvement areas and clear action steps.
                         2. Trends and meaning for typical subjects in this domain.
-                        3. Markdown table of 10 best Bachelor’s degree colleges nearer to the location given by the user only 
+                        3. Markdown table of 10 best Bachelor’s degree colleges based on their career interest nearer to the location given by the user only 
                            (with location, program mentioned, entrance and eligibility, speciality of each college).
-                        4. Markdown table of 5 best Master’s programs (if applicable, with the same specifications given for the bachelors table).
+                        4. Markdown table of 5 best Master’s programs based on their career interest (if applicable, with the same specifications given for the bachelors table).
                         5. End with a motivational summary.
                         """
                         aptitude_response = client.chat.completions.create(
@@ -447,3 +447,4 @@ if user:
 
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
+
