@@ -53,21 +53,21 @@ def career_guidance_node(state: CounsellorState):
         trends[sub] = get_trend(sub_scores)
 
     prompt = f"""
-    The student named {state['student_name']} has these academic details:
-    - Test Scores: {state['test_scores']}
-    - Trends: {trends}
-    - State: {state['state']}
-    - Career Interest: {state['requirement']}
+       The student named {state['student_name']} has these academic details:
+       - Test Scores: {state['test_scores']}
+       - Trends: {trends}
+       - State: {state['state']}
+       - Career Interest: {state['requirement']}
 
-    Provide:
-    1. Personalized career guidance with improvement areas and clear action steps.
-    2. Mention each subject's trend and what it means.
-    3. Markdown table of 10 best Bachelor’s degree and the college the student can take based on their career interest nearer to the location given by the user only 
-       (with location, program mentioned and course specialization(check whether the course is offered by that college and display), entrance and eligibility, students placed percentage).
-    4. Markdown table of 5 best Master’s programs based on their career interest (if applicable, with the same specifications given for the bachelors table).
-    5. Give some possible job roles one can except after completion of the particular guided path above with some explanation of the job role.
-    6. End with a motivational summary.
-    """
+       Provide:
+       1. Personalized career guidance with improvement areas and clear action steps.
+       2. Mention each subject's trend and what it means.
+       3. Markdown table of 10 best Bachelor’s degree and the college the student can take based on their career interest nearer to the location given by the user only 
+          (with location, program mentioned and course specialization(check whether the course is offered by that college and display), entrance and eligibility, students placed percentage).
+       4. Markdown table of 5 best Master’s programs based on their career interest (if applicable, with the same specifications given for the bachelors table).
+       5. Give some possible job roles one can except after completion of the particular guided path above with some explanation of the job role.
+       6. End with a motivational summary.
+       """
 
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
@@ -196,6 +196,7 @@ if user:
             st.subheader("🧩 Career Interest Questionnaire")
             st.info("Please rate each statement from 1 (Strongly Disagree) to 5 (Strongly Agree). You can submit only once.")
             questions = [
+                # ... (same as before, omitted for brevity) ...
                 "1. I love understanding how engines, bikes, and machines work and imagining how to make them faster or more efficient.",
                 "2. I am interested in learning how rockets work and how humans explore space and other planets.",
                 "3. The idea of building or programming a robot that can move or think on its own excites me.",
@@ -263,10 +264,11 @@ if user:
             tests_ref = db.collection("students").document(uid).collection("tests").stream()
             for doc in tests_ref:
                 test_scores.append(doc.to_dict())
-            # Only keep records with date, and sort oldest to newest (newest always last!)
+            # Only keep records with date, and sort oldest to newest
             test_scores = [t for t in test_scores if "date_entered" in t]
             if test_scores:
                 test_scores = sorted(test_scores, key=lambda x: x["date_entered"])    
+
             st.write(f"Currently tracking subjects: {', '.join(subjects)}")
             test_data = {
                 "class": student_class,
@@ -277,22 +279,22 @@ if user:
             if st.button("➕ Add Test", key="add_test_btn"):
                 db.collection("students").document(uid).collection("tests").add(test_data)
                 st.success("✅ Test added successfully!")
+
             if test_scores:
                 st.subheader("📊 Your Test History")
+                # Add Test Numbers for plotting
                 df = pd.DataFrame(test_scores)
-                columns_order = ["class", "date_entered"] + list(subjects)
+                df["Test Number"] = range(1, len(df) + 1)
+                columns_order = ["Test Number", "class", "date_entered"] + list(subjects)
                 columns_order = [col for col in columns_order if col in df.columns]
-                df = df[columns_order]
-                st.dataframe(df)
+                st.dataframe(df[columns_order])
+                
                 # ----------- Line Graphs for Each Subject's Scores ----------
                 st.subheader("📈 Test Score Trends for Each Subject")
                 for sub in subjects:
                     if sub in df.columns:
                         st.write(f"#### {sub} Trend")
-                        if "date_entered" in df.columns:
-                            chart_data = df.set_index("date_entered")[sub]
-                        else:
-                            chart_data = df[sub]
+                        chart_data = df[[sub, "Test Number"]].set_index("Test Number")
                         st.line_chart(chart_data, height=200)
             st.subheader("🚀 Career Guidance Assistant")
             state_name = st.text_input("Your State:", key="state_input")
@@ -335,7 +337,6 @@ if user:
                         "Do you follow scientific news, and if so, which discoveries excited you recently?",
                         "Would you prefer researching new things or teaching what you know?"
                     ],
-                    # New fields
                     "business": [
                         "Which aspect of business interests you most — finance, management, entrepreneurship, or marketing?",
                         "Which do you prefer, interacting with people or analyzing data?",
@@ -359,24 +360,21 @@ if user:
                     ]
                 }
                 key = next((k for k in followup_qs.keys() if k in requirement.lower()), None)
-                if key:
-                    qs = followup_qs[key]
-                else:
-                    qs = [
-                        "What draws you toward this field?",
-                        "What kind of daily work or challenges excite you in this area?",
-                        "Where do you see yourself applying these skills in the future?"
-                    ]
+                qs = followup_qs[key] if key else [
+                    "What draws you toward this field?",
+                    "What kind of daily work or challenges excite you in this area?",
+                    "Where do you see yourself applying these skills in the future?"
+                ]
                 answers = []
                 for q in qs:
                     answers.append(st.text_area(q, key=f"info_{q}"))
                 if all(answers) and st.button("💡 Generate Career Guidance", key="career_guidance_btn"):
                     narrow_prompt = f"""
-                    The student {student_name} expressed interest in {requirement} and answered:
-                    {dict(zip(qs, answers))}.
-                    Based on these, identify their most fitting specialization or sub-field.
-                    Provide a short reasoning in 2 lines.
-                    """
+                        The student {student_name} expressed interest in {requirement} and answered:
+                        {dict(zip(qs, answers))}.
+                        Based on these, identify their most fitting specialization or sub-field.
+                        Provide a short reasoning in 2 lines.
+                        """
                     subresp = client.chat.completions.create(
                         model="llama-3.1-8b-instant",
                         messages=[{"role": "user", "content": narrow_prompt}],
@@ -396,18 +394,18 @@ if user:
                     aptitude_output = ""
                     if mode == "mismatch":
                         aptitude_prompt = f"""
-                        The student named {student_name} has these academic details:
-                        - Aptitude-assessed Domain: {actual_domain}
-                        - State: {state_name}
-                        Provide:
-                        1. Career guidance for the aptitude-assessed domain with improvement areas and clear action steps.
-                        2. Trends and meaning for typical subjects in this domain.
-                        3. Markdown table of 10 best Bachelor’s degree and the college the student can take based on their career interest nearer to the location given by the user only 
-                           (with location, program mentioned and course specialization(check whether the course is offered by that college and display), entrance and eligibility, students placed percentage).
-                        4. Markdown table of 5 best Master’s programs based on their career interest (if applicable, with the same specifications given for the bachelors table).
-                        5. Give some possible job roles one can except after completion of the particular guided path above with some explanation of the job role.
-                        6. End with a motivational summary.
-                        """
+                            The student named {student_name} has these academic details:
+                            - Aptitude-assessed Domain: {actual_domain}
+                            - State: {state_name}
+                            Provide:
+                            1. Career guidance for the aptitude-assessed domain with improvement areas and clear action steps.
+                            2. Trends and meaning for typical subjects in this domain.
+                            3. Markdown table of 10 best Bachelor’s degree and the college the student can take based on their career interest nearer to the location given by the user only 
+                               (with location, program mentioned and course specialization(check whether the course is offered by that college and display), entrance and eligibility, students placed percentage).
+                            4. Markdown table of 5 best Master’s programs based on their career interest (if applicable, with the same specifications given for the bachelors table).
+                            5. Give some possible job roles one can except after completion of the particular guided path above with some explanation of the job role.
+                            6. End with a motivational summary.
+                            """
                         aptitude_response = client.chat.completions.create(
                             model="llama-3.1-8b-instant",
                             messages=[{"role": "user", "content": aptitude_prompt}],
@@ -429,6 +427,7 @@ if user:
                     if aptitude_output:
                         st.markdown("### 🧠 Aptitude-based Guidance")
                         st.markdown(aptitude_output, unsafe_allow_html=True)
+
         elif page == "Previous Analysis":
             st.subheader("🕒 Previous Career Guidance Reports")
             reports_ref = (
@@ -460,5 +459,3 @@ if user:
                 st.info("No previous analyses found.")
 else:
     st.warning("👋 Please log in or register to access your personalized dashboard.")
-
-
